@@ -36,56 +36,8 @@ class AuthenticGlitchEffect {
     }
     
     setupBackground() {
-        const loader = new THREE.TextureLoader();
-        loader.crossOrigin = "*";
-        loader.load('./glitch.jpg', (texture) => {
-            texture.magFilter = THREE.NearestFilter;
-            texture.minFilter = THREE.NearestFilter;
-            
-            const bgGeometry = new THREE.PlaneBufferGeometry(2, 2);
-            const bgMaterial = new THREE.RawShaderMaterial({
-                uniforms: {
-                    resolution: { type: "v2", value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-                    imageResolution: { type: "v2", value: new THREE.Vector2(2048, 1356) },
-                    texture: { type: "t", value: texture }
-                },
-                vertexShader: `
-                    attribute vec3 position;
-                    attribute vec2 uv;
-                    varying vec2 vUv;
-                    void main(void) {
-                        vUv = uv;
-                        gl_Position = vec4(position, 1.0);
-                    }
-                `,
-                fragmentShader: `
-                    precision highp float;
-                    uniform vec2 resolution;
-                    uniform vec2 imageResolution;
-                    uniform sampler2D texture;
-                    varying vec2 vUv;
-                    void main(void) {
-                        vec2 ratio = vec2(
-                            min((resolution.x / resolution.y) / (imageResolution.x / imageResolution.y), 1.0),
-                            min((resolution.y / resolution.x) / (imageResolution.y / imageResolution.x), 1.0)
-                        );
-                        vec2 uv = vec2(
-                            vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
-                            vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
-                        );
-                        gl_FragColor = texture2D(texture, uv);
-                    }
-                `
-            });
-            
-            this.bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
-            this.sceneBack.add(this.bgMesh);
-            this.bgUniforms = bgMaterial.uniforms;
-        }, (error) => {
-            console.warn('Could not load glitch.jpg, using fallback');
-            this.setupFallbackBackground();
-        });
-        
+        // Always use a neutral generated texture (no external image) to keep the glitch subtle
+        this.setupFallbackBackground();
         this.renderer.setClearColor(0x111111, 0);
         this.cameraBack.position.set(0, 0, 100);
         this.cameraBack.lookAt(new THREE.Vector3());
@@ -235,7 +187,8 @@ class AuthenticGlitchEffect {
                         + step(0.9999, sin(y * 0.005 + time * 2.0)) * -18.0
                     ) / resolution.x;
                     
-                    float rgbDiff = (6.0 + sin(time * 500.0 + vUv.y * 40.0) * (20.0 * strength + 1.0)) / resolution.x;
+                    // Reduce RGB separation intensity
+                    float rgbDiff = (2.0 + sin(time * 400.0 + vUv.y * 30.0) * (6.0 * strength + 1.0)) / resolution.x;
                     float rgbUvX = vUv.x + rgbWave;
                     
                     // RGB separation
@@ -244,7 +197,8 @@ class AuthenticGlitchEffect {
                     float b = texture2D(texture, vec2(rgbUvX - rgbDiff, vUv.y) + shake).b;
                     
                     // White noise
-                    float whiteNoise = (random(vUv + mod(time, 10.0)) * 2.0 - 1.0) * (0.15 + strength * 0.15);
+                    // Reduce white noise strength
+                    float whiteNoise = (random(vUv + mod(time, 10.0)) * 2.0 - 1.0) * (0.06 + strength * 0.06);
                     
                     // Block noise 1
                     float bnTime = floor(time * 20.0) * 200.0;
@@ -268,10 +222,12 @@ class AuthenticGlitchEffect {
                     vec4 blockNoise2 = vec4(bnR2, bnG2, bnB2, 1.0);
                     
                     // Wave noise
-                    float waveNoise = (sin(vUv.y * 1200.0) + 1.0) / 2.0 * (0.15 + strength * 0.2);
+                    // Reduce wave noise strength
+                    float waveNoise = (sin(vUv.y * 800.0) + 1.0) / 2.0 * (0.06 + strength * 0.08);
                     
                     // Final composition
-                    gl_FragColor = vec4(r, g, b, 0.8) * (1.0 - bnMask - bnMask2) + (whiteNoise + blockNoise + blockNoise2 - waveNoise);
+                    // Lower overall alpha/intensity of the glitch overlay
+                    gl_FragColor = vec4(r, g, b, 0.45) * (1.0 - bnMask - bnMask2) + (whiteNoise + blockNoise + blockNoise2 - waveNoise) * 0.6;
                 }
             `
         });
