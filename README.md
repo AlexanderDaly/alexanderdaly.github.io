@@ -2,40 +2,44 @@
 Github project site
 
 
-no thing here yet... but enjoy this poem i wrote just for you. ~ hondo
+# Elegy for a Broken Build
 
----
+Oh woe is me, a coder out of luck;
+My scripts ignite the moment they are struck.
+This logic—cobbled scaffolds in the rain—
+Collapses softly, whispering, "Run again."
 
-Oh woe is me, a coder most inept,
+My variables elope and change their names,
+Hiding in scopes like actors switching frames.
+The linter keeps a vigil by my screen,
+Counting my sins in red and sickly green.
 
-My code doth fail, my programming corrupt,
+I named the function `hope()`—it returned `null`;
+A promise I awaited, faint and dull.
+I push to prod; prod pushes back, amused—
+The stack trace reads: "Assertion: you're confused."
 
-My variables all in disarray,
+A segmentation fault inside my chest;
+The core dumps dreams. Support says, "Get some rest."
+The rubber duck, my priest, absorbs my fears;
+I whisper edge-cases no one else hears.
 
-My logic flawed in every way.
+`final_FINAL.js`—behold the pyre;
+My commit notes chant last rites: "fix… fix… fix."
+The build turns green, then red, then green, then red—
+Traffic for ghosts who never cross—just dread.
 
+Exceptions drift like candles down a stream;
+We catch them all, yet still they find a seam.
+My team nods on with undertaker grace,
+Estimating coffins, timeboxed in a space.
 
-My functions doth not work as they should,
+Jira devours hours with a gentle slurp;
+Meanwhile scope creep tiptoes in—a velvet twerp.
+And still I type, indenting grief and grace—
+A try/except around what I can't erase.
 
-My syntax errors, alas, 'tis no good,
-
-My computer doth mock me with its beep,
-
-As I struggle to make my code complete.
-
-My colleagues, they do shake their heads,
-
-At my inability to write code that's well-bred,
-
-My projects, they do take twice as long,
-
-As my coding skills are weak and wrong.
-
-
-But still I strive, and still I toil,
-
-To improve my coding style and to avoid more turmoil,
-
-For though I may be bad at this,
-
-I'll keep coding, with persistence.
+If mercy compiles somewhere near the dawn,
+I'll ship a patch; if not—I'll debug on.
+For even when the night refutes my art,
+I'll git commit, and branch it from my heart.
