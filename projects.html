@@ -102,6 +102,63 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
+        /* Project card styles */
+        .project-card {
+            font-size: 1.05rem;
+            color: #e6e6e6;
+            line-height: 1.8;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            text-align: left;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .project-card h2 {
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: #00d4ff;
+            text-align: center;
+        }
+
+        .project-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 22px 0 10px;
+            color: #ffffff;
+        }
+
+        .project-card p + p {
+            margin-top: 12px;
+        }
+
+        .project-card ul,
+        .project-card ol {
+            margin: 8px 0 0 22px;
+        }
+
+        .project-card li {
+            margin: 8px 0;
+        }
+
+        .project-card blockquote {
+            margin: 18px 0 0 0;
+            padding-left: 14px;
+            border-left: 3px solid rgba(0, 212, 255, 0.5);
+            color: #cfefff;
+            font-style: italic;
+        }
+
+        .project-card hr {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            margin: 18px 0;
+        }
+
         .creative-icon {
             width: 80px;
             height: 80px;
@@ -179,6 +236,54 @@
         <h1 class="title">Projects</h1>
         
         <p class="subtitle">Creative Solutions & Digital Innovations</p>
+        
+        <div class="project-card">
+            <h2>Miserable Ape Studios — White Paper (Condensed)</h2>
+            <h3>Title</h3>
+            <p><strong>Deterministic Worlds, Probabilistic Minds: A Realistic Approach to Narrative AI</strong></p>
+            <hr>
+            <h3>1. Summary</h3>
+            <p>Miserable Ape Studios builds <strong>deterministic games powered by language models</strong> that control story and emotion in real time. We design for <em>controlled unpredictability</em> — stable game worlds that safely host probabilistic AI behavior.</p>
+            <p><strong>Blightwood</strong>, our debut title, is both a <strong>grimdark RPG</strong> and a <strong>sandbox for testing narrative intelligence</strong>. It logs every decision, creating replayable, auditable data useful for both storytelling and research.</p>
+            <hr>
+            <h3>2. Core Concept</h3>
+            <ul>
+                <li><strong>Deterministic Engine:</strong> A reproducible world—same inputs yield same results.</li>
+                <li><strong>Digital Story Director (DI):</strong> A bounded LLM layer guiding dialogue, pacing, and tone within fixed rules.</li>
+                <li><strong>Observability:</strong> Every action, state change, and AI decision is logged for replay and analysis.</li>
+                <li><strong>Human Oversight:</strong> Writers and designers remain in the loop to guide and correct outcomes.</li>
+            </ul>
+            <hr>
+            <h3>3. Why It Matters</h3>
+            <p>Most “AI narrative” systems are random and unrepeatable. Our approach generates <strong>structured, testable data</strong>, making narrative reasoning measurable. It bridges entertainment and research without pretending AI interpretability is solved.</p>
+            <p>We don’t seek perfect stability — we <strong>embrace black-box uncertainty</strong> and engineer around it.</p>
+            <hr>
+            <h3>4. Product Strategy</h3>
+            <ol>
+                <li><strong>Blightwood</strong> — a standalone grimdark RPG showcasing the system.</li>
+                <li><strong>Engine Licensing</strong> — deterministic engine + DI API for partner studios.</li>
+                <li><strong>Narrative Trace Data</strong> — anonymized session logs for academic and R&amp;D use.</li>
+                <li><strong>Internal R&amp;D</strong> — refine our own Director Models using real gameplay data.</li>
+            </ol>
+            <hr>
+            <h3>5. Company Doctrine</h3>
+            <ol>
+                <li>Determinism first — no hidden randomness.</li>
+                <li>Uncertainty contained — every black-box action is logged and bounded.</li>
+                <li>Writers and engineers co-own the process.</li>
+                <li>Transparency by design — replayability and reproducibility are mandatory.</li>
+                <li>The goal isn’t to remove chaos, but to <strong>understand and use it.</strong></li>
+            </ol>
+            <hr>
+            <h3>6. Realistic Outlook</h3>
+            <p>We don’t expect full model transparency or reliable self-alignment within a decade. Instead, MAS builds infrastructure to study, sandbox, and refine unpredictable systems safely — one deterministic world at a time.</p>
+            <hr>
+            <h3>7. Positioning</h3>
+            <p><strong>Miserable Ape Studios = Auditable Narrative AI.</strong><br>We make games that double as controlled experiments in digital storytelling.</p>
+            <blockquote>
+                <em>Our worlds stay fixed, so intelligence can move freely — and we can learn from every step.</em>
+            </blockquote>
+        </div>
         
         <div class="description">
             <p><strong>Under Construction</strong></p>
