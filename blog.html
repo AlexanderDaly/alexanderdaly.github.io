@@ -1,255 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="./svg/Spy-06.svg">
     <title>Blog - Alexander Daly</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
-            color: white;
-            overflow-x: hidden;
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 3;
-        }
-
-        .back-button {
-            display: inline-block;
-            position: fixed;
-            top: 40px;
-            left: 40px;
-            z-index: 4;
-            margin: 0;
-            padding: 10px 20px;
-            background: rgba(0, 212, 255, 0.1);
-            border: 2px solid #00d4ff;
-            border-radius: 25px;
-            color: #00d4ff;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-
-        .back-button:hover {
-            background: #00d4ff;
-            color: #0c0c0c;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
-        }
-
-        .blog-header {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .blog-title {
-            font-size: 3rem;
-            font-weight: 300;
-            margin-bottom: 20px;
-            background: linear-gradient(45deg, #00d4ff, #ffffff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: 2px;
-        }
-
-        .blog-subtitle {
-            font-size: 1.2rem;
-            color: #888;
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-
-        .poem-container {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 40px;
-            margin-bottom: 40px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .poem-title {
-            font-size: 2.2rem;
-            font-weight: 400;
-            margin-bottom: 30px;
-            color: #00d4ff;
-            text-align: center;
-            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
-            padding-bottom: 15px;
-        }
-
-        .poem-content {
-            font-size: 1.1rem;
-            line-height: 1.8;
-            color: #e0e0e0;
-            font-family: 'Georgia', serif;
-            white-space: pre-line;
-        }
-
-        .poem-content code {
-            background: rgba(0, 212, 255, 0.1);
-            color: #00d4ff;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Monaco', monospace;
-            font-size: 0.95em;
-        }
-
-        .poem-meta {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.9rem;
-            color: #888;
-            text-align: center;
-            font-style: italic;
-        }
-
-        #canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        #effect-box {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-            opacity: 0.18;
-        }
-
-        #glitch-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        @media (max-width: 768px) {
-            .blog-title {
-                font-size: 2.5rem;
-            }
-            
-            .poem-container {
-                padding: 25px;
-            }
-            
-            .poem-content {
-                font-size: 1rem;
-            }
-            
-            .container {
-                padding: 0 15px;
-            }
-            
-            .back-button {
-                top: 20px;
-                left: 20px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="./css/style.css">
 </head>
+
 <body>
-    <canvas id="canvas"></canvas>
-    
-    <!-- WebGL Glitch Effect -->
-    <div id="effect-box">
-        <canvas id="glitch-canvas"></canvas>
-    </div>
-    
     <div class="container">
-        <a href="/" class="back-button">← Back to Home</a>
-        
-        <div class="blog-header">
-            <h1 class="blog-title">Blog</h1>
-            <p class="blog-subtitle">
-                Thoughts, code, and digital poetry from the depths of development
-            </p>
-        </div>
-        
-        <article class="poem-container">
-            <h2 class="poem-title">Elegy for a Broken Build</h2>
-            <div class="poem-content">Oh woe is me, a coder out of luck;
-My scripts ignite the moment they are struck.
-This logic—cobbled scaffolds in the rain—
-Collapses softly, whispering, "Run again."
+        <header>
+            <a href="/" class="logo">Alexander Daly</a>
+            <nav>
+                <a href="./projects.html">Projects</a>
+                <a href="./blog.html" style="color: var(--text-color);">Blog</a>
+                <a href="https://x.com/HP_NoobCraft" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+            </nav>
+        </header>
 
-My variables elope and change their names,
-Hiding in scopes like actors switching frames.
-The linter keeps a vigil by my screen,
-Counting my sins in red and sickly green.
+        <main>
+            <article>
+                <div class="article-header">
+                    <div class="article-meta">Latest Post</div>
+                    <h1 class="article-title">Elegy for a Broken Build</h1>
+                    <p class="subtitle">Thoughts, code, and digital poetry from the depths of development</p>
+                </div>
 
-I named the function <code>hope()</code>—it returned <code>null</code>;
-A promise I awaited, faint and dull.
-I push to prod; prod pushes back, amused—
-The stack trace reads: "Assertion: you're confused."
+                <div class="article-content">
+                    <p>Oh woe is me, a coder out of luck;<br>
+                        My scripts ignite the moment they are struck.<br>
+                        This logic—cobbled scaffolds in the rain—<br>
+                        Collapses softly, whispering, "Run again."</p>
 
-A segmentation fault inside my chest;
-The core dumps dreams. Support says, "Get some rest."
-The rubber duck, my priest, absorbs my fears;
-I whisper edge-cases no one else hears.
+                    <p>My variables elope and change their names,<br>
+                        Hiding in scopes like actors switching frames.<br>
+                        The linter keeps a vigil by my screen,<br>
+                        Counting my sins in red and sickly green.</p>
 
-<code>final_FINAL.js</code>—behold the pyre;
-My commit notes chant last rites: "fix… fix… fix."
-The build turns green, then red, then green, then red—
-Traffic for ghosts who never cross—just dread.
+                    <p>I named the function <code>hope()</code>—it returned <code>null</code>;<br>
+                        A promise I awaited, faint and dull.<br>
+                        I push to prod; prod pushes back, amused—<br>
+                        The stack trace reads: "Assertion: you're confused."</p>
 
-Exceptions drift like candles down a stream;
-We catch them all, yet still they find a seam.
-My team nods on with undertaker grace,
-Estimating coffins, timeboxed in a space.
+                    <p>A segmentation fault inside my chest;<br>
+                        The core dumps dreams. Support says, "Get some rest."<br>
+                        The rubber duck, my priest, absorbs my fears;<br>
+                        I whisper edge-cases no one else hears.</p>
 
-Jira devours hours with a gentle slurp;
-Meanwhile scope creep tiptoes in—a velvet twerp.
-And still I type, indenting grief and grace—
-A try/except around what I can't erase.
+                    <p><code>final_FINAL.js</code>—behold the pyre;<br>
+                        My commit notes chant last rites: "fix… fix… fix."<br>
+                        The build turns green, then red, then green, then red—<br>
+                        Traffic for ghosts who never cross—just dread.</p>
 
-If mercy compiles somewhere near the dawn,
-I'll ship a patch; if not—I'll debug on.
-For even when the night refutes my art,
-I'll git commit, and branch it from my heart.</div>
-            <div class="poem-meta">
-                A meditation on the developer's journey through digital purgatory
+                    <p>Exceptions drift like candles down a stream;<br>
+                        We catch them all, yet still they find a seam.<br>
+                        My team nods on with undertaker grace,<br>
+                        Estimating coffins, timeboxed in a space.</p>
+
+                    <p>Jira devours hours with a gentle slurp;<br>
+                        Meanwhile scope creep tiptoes in—a velvet twerp.<br>
+                        And still I type, indenting grief and grace—<br>
+                        A try/except around what I can't erase.</p>
+
+                    <p>If mercy compiles somewhere near the dawn,<br>
+                        I'll ship a patch; if not—I'll debug on.<br>
+                        For even when the night refutes my art,<br>
+                        I'll git commit, and branch it from my heart.</p>
+
+                    <hr>
+                    <p style="text-align: center; font-style: italic; color: var(--secondary-text);">A meditation on the
+                        developer's journey through digital purgatory</p>
+                </div>
+            </article>
+        </main>
+
+        <footer>
+            <div class="copyright">&copy; 2024 Alexander Daly</div>
+            <div class="social-links">
+                <a href="https://github.com/alexanderdaly" target="_blank">GitHub</a>
+                <a href="https://x.com/HP_NoobCraft" target="_blank">X (Twitter)</a>
             </div>
-        </article>
+        </footer>
     </div>
-
-    <!-- Include Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r92/three.min.js"></script>
-    <script src="./glitch-effect.js?v=2"></script>
-    <script src="./network-animation.js?v=2"></script>
-    
-    <script>
-        // Initialize both effects when the page loads
-        window.addEventListener('load', () => {
-            new AuthenticGlitchEffect();
-            new NetworkAnimation();
-        });
-    </script>
 </body>
+
 </html>

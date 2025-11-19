@@ -1,311 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="./svg/Spy-05.svg">
     <title>Projects - Alexander Daly</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
-            color: white;
-            overflow-x: hidden;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 600px;
-            position: relative;
-            z-index: 3;
-        }
-
-        .back-button {
-            position: absolute;
-            top: 40px;
-            left: 40px;
-            padding: 10px 20px;
-            background: rgba(0, 212, 255, 0.1);
-            border: 2px solid #00d4ff;
-            border-radius: 25px;
-            color: #00d4ff;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-            z-index: 4;
-        }
-
-        .back-button:hover {
-            background: #00d4ff;
-            color: #0c0c0c;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
-        }
-
-        .construction-icon {
-            font-size: 6rem;
-            margin-bottom: 30px;
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-20px);
-            }
-            60% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .title {
-            font-size: 3rem;
-            font-weight: 300;
-            margin-bottom: 20px;
-            background: linear-gradient(45deg, #00d4ff, #ffffff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: 2px;
-        }
-
-        .subtitle {
-            font-size: 1.3rem;
-            color: #888;
-            margin-bottom: 40px;
-            line-height: 1.6;
-        }
-
-        .description {
-            font-size: 1.1rem;
-            color: #ccc;
-            line-height: 1.8;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Project card styles */
-        .project-card {
-            font-size: 1.05rem;
-            color: #e6e6e6;
-            line-height: 1.8;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 40px;
-            text-align: left;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .project-card h2 {
-            font-size: 1.8rem;
-            font-weight: 500;
-            margin-bottom: 10px;
-            color: #00d4ff;
-            text-align: center;
-        }
-
-        .project-card h3 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin: 22px 0 10px;
-            color: #ffffff;
-        }
-
-        .project-card p + p {
-            margin-top: 12px;
-        }
-
-        .project-card ul,
-        .project-card ol {
-            margin: 8px 0 0 22px;
-        }
-
-        .project-card li {
-            margin: 8px 0;
-        }
-
-        .project-card blockquote {
-            margin: 18px 0 0 0;
-            padding-left: 14px;
-            border-left: 3px solid rgba(0, 212, 255, 0.5);
-            color: #cfefff;
-            font-style: italic;
-        }
-
-        .project-card hr {
-            border: none;
-            border-top: 1px solid rgba(255, 255, 255, 0.12);
-            margin: 18px 0;
-        }
-
-        .creative-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 30px;
-            filter: invert(0.7) sepia(1) saturate(5) hue-rotate(180deg);
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-15px); }
-        }
-
-        #canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        #effect-box {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-            opacity: 0.15;
-        }
-
-        #glitch-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        @media (max-width: 768px) {
-            .back-button {
-                top: 20px;
-                left: 20px;
-            }
-            
-            .title {
-                font-size: 2.5rem;
-            }
-            
-            .construction-icon {
-                font-size: 4rem;
-            }
-            
-            .description {
-                padding: 20px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="./css/style.css">
 </head>
+
 <body>
-    <canvas id="canvas"></canvas>
-    
-    <!-- WebGL Glitch Effect -->
-    <div id="effect-box">
-        <canvas id="glitch-canvas"></canvas>
-    </div>
-    
-    <a href="/" class="back-button">← Back to Home</a>
-    
     <div class="container">
-        
-        <div class="construction-icon">🚧</div>
-        
-        <h1 class="title">Projects</h1>
-        
-        <p class="subtitle">Creative Solutions & Digital Innovations</p>
-        
-        <div class="project-card">
-            <h2>Miserable Ape Studios — White Paper (Condensed)</h2>
-            <h3>Title</h3>
-            <p><strong>Deterministic Worlds, Probabilistic Minds: A Realistic Approach to Narrative AI</strong></p>
-            <hr>
-            <h3>1. Summary</h3>
-            <p>Miserable Ape Studios builds <strong>deterministic games powered by language models</strong> that control story and emotion in real time. We design for <em>controlled unpredictability</em> — stable game worlds that safely host probabilistic AI behavior.</p>
-            <p><strong>Blightwood</strong>, our debut title, is both a <strong>grimdark RPG</strong> and a <strong>sandbox for testing narrative intelligence</strong>. It logs every decision, creating replayable, auditable data useful for both storytelling and research.</p>
-            <hr>
-            <h3>2. Core Concept</h3>
-            <ul>
-                <li><strong>Deterministic Engine:</strong> A reproducible world—same inputs yield same results.</li>
-                <li><strong>Digital Story Director (DI):</strong> A bounded LLM layer guiding dialogue, pacing, and tone within fixed rules.</li>
-                <li><strong>Observability:</strong> Every action, state change, and AI decision is logged for replay and analysis.</li>
-                <li><strong>Human Oversight:</strong> Writers and designers remain in the loop to guide and correct outcomes.</li>
-            </ul>
-            <hr>
-            <h3>3. Why It Matters</h3>
-            <p>Most “AI narrative” systems are random and unrepeatable. Our approach generates <strong>structured, testable data</strong>, making narrative reasoning measurable. It bridges entertainment and research without pretending AI interpretability is solved.</p>
-            <p>We don’t seek perfect stability — we <strong>embrace black-box uncertainty</strong> and engineer around it.</p>
-            <hr>
-            <h3>4. Product Strategy</h3>
-            <ol>
-                <li><strong>Blightwood</strong> — a standalone grimdark RPG showcasing the system.</li>
-                <li><strong>Engine Licensing</strong> — deterministic engine + DI API for partner studios.</li>
-                <li><strong>Narrative Trace Data</strong> — anonymized session logs for academic and R&amp;D use.</li>
-                <li><strong>Internal R&amp;D</strong> — refine our own Director Models using real gameplay data.</li>
-            </ol>
-            <hr>
-            <h3>5. Company Doctrine</h3>
-            <ol>
-                <li>Determinism first — no hidden randomness.</li>
-                <li>Uncertainty contained — every black-box action is logged and bounded.</li>
-                <li>Writers and engineers co-own the process.</li>
-                <li>Transparency by design — replayability and reproducibility are mandatory.</li>
-                <li>The goal isn’t to remove chaos, but to <strong>understand and use it.</strong></li>
-            </ol>
-            <hr>
-            <h3>6. Realistic Outlook</h3>
-            <p>We don’t expect full model transparency or reliable self-alignment within a decade. Instead, MAS builds infrastructure to study, sandbox, and refine unpredictable systems safely — one deterministic world at a time.</p>
-            <hr>
-            <h3>7. Positioning</h3>
-            <p><strong>Miserable Ape Studios = Auditable Narrative AI.</strong><br>We make games that double as controlled experiments in digital storytelling.</p>
-            <blockquote>
-                <em>Our worlds stay fixed, so intelligence can move freely — and we can learn from every step.</em>
-            </blockquote>
-        </div>
-        
-        <div class="description">
-            <p><strong>Under Construction</strong></p>
-            <br>
-            <p>This section is currently being built to showcase my latest projects, creative experiments, and technical innovations. From web applications to digital art, from automation scripts to interactive experiences – this will be the home for all my creative endeavors.</p>
-            <br>
-            <p>Check back soon to explore the intersection of code, creativity, and problem-solving!</p>
-        </div>
+        <header>
+            <a href="/" class="logo">Alexander Daly</a>
+            <nav>
+                <a href="./projects.html" style="color: var(--text-color);">Projects</a>
+                <a href="./blog.html">Blog</a>
+                <a href="https://x.com/HP_NoobCraft" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+            </nav>
+        </header>
+
+        <main>
+            <article>
+                <div class="article-header">
+                    <div class="article-meta">Latest Project</div>
+                    <h1 class="article-title">Miserable Ape Studios</h1>
+                    <p class="subtitle">Deterministic Worlds, Probabilistic Minds: A Realistic Approach to Narrative AI
+                    </p>
+                </div>
+
+                <div class="article-content">
+                    <p>Miserable Ape Studios builds <strong>deterministic games powered by language models</strong> that
+                        control story and emotion in real time. We design for <em>controlled unpredictability</em> —
+                        stable game worlds that safely host probabilistic AI behavior.</p>
+                    <p><strong>Blightwood</strong>, our debut title, is both a <strong>grimdark RPG</strong> and a
+                        <strong>sandbox for testing narrative intelligence</strong>. It logs every decision, creating
+                        replayable, auditable data useful for both storytelling and research.</p>
+
+                    <hr>
+
+                    <h2>Core Concept</h2>
+                    <ul>
+                        <li><strong>Deterministic Engine:</strong> A reproducible world—same inputs yield same results.
+                        </li>
+                        <li><strong>Digital Story Director (DI):</strong> A bounded LLM layer guiding dialogue, pacing,
+                            and tone within fixed rules.</li>
+                        <li><strong>Observability:</strong> Every action, state change, and AI decision is logged for
+                            replay and analysis.</li>
+                        <li><strong>Human Oversight:</strong> Writers and designers remain in the loop to guide and
+                            correct outcomes.</li>
+                    </ul>
+
+                    <h2>Why It Matters</h2>
+                    <p>Most “AI narrative” systems are random and unrepeatable. Our approach generates
+                        <strong>structured, testable data</strong>, making narrative reasoning measurable. It bridges
+                        entertainment and research without pretending AI interpretability is solved.</p>
+                    <p>We don’t seek perfect stability — we <strong>embrace black-box uncertainty</strong> and engineer
+                        around it.</p>
+
+                    <h2>Product Strategy</h2>
+                    <ol>
+                        <li><strong>Blightwood</strong> — a standalone grimdark RPG showcasing the system.</li>
+                        <li><strong>Engine Licensing</strong> — deterministic engine + DI API for partner studios.</li>
+                        <li><strong>Narrative Trace Data</strong> — anonymized session logs for academic and R&amp;D
+                            use.</li>
+                        <li><strong>Internal R&amp;D</strong> — refine our own Director Models using real gameplay data.
+                        </li>
+                    </ol>
+
+                    <h2>Company Doctrine</h2>
+                    <ol>
+                        <li>Determinism first — no hidden randomness.</li>
+                        <li>Uncertainty contained — every black-box action is logged and bounded.</li>
+                        <li>Writers and engineers co-own the process.</li>
+                        <li>Transparency by design — replayability and reproducibility are mandatory.</li>
+                        <li>The goal isn’t to remove chaos, but to <strong>understand and use it.</strong></li>
+                    </ol>
+
+                    <h2>Realistic Outlook</h2>
+                    <p>We don’t expect full model transparency or reliable self-alignment within a decade. Instead, MAS
+                        builds infrastructure to study, sandbox, and refine unpredictable systems safely — one
+                        deterministic world at a time.</p>
+
+                    <h2>Positioning</h2>
+                    <p><strong>Miserable Ape Studios = Auditable Narrative AI.</strong><br>We make games that double as
+                        controlled experiments in digital storytelling.</p>
+                    <blockquote>
+                        Our worlds stay fixed, so intelligence can move freely — and we can learn from every step.
+                    </blockquote>
+                </div>
+            </article>
+        </main>
+
+        <footer>
+            <div class="copyright">&copy; 2024 Alexander Daly</div>
+            <div class="social-links">
+                <a href="https://github.com/alexanderdaly" target="_blank">GitHub</a>
+                <a href="https://x.com/HP_NoobCraft" target="_blank">X (Twitter)</a>
+            </div>
+        </footer>
     </div>
-
-    <!-- Include Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r92/three.min.js"></script>
-    <script src="./glitch-effect.js?v=2"></script>
-    <script src="./network-animation.js?v=2"></script>
-    
-    <script>
-        // Initialize both effects when the page loads
-        window.addEventListener('load', () => {
-            new AuthenticGlitchEffect();
-            new NetworkAnimation();
-        });
-    </script>
 </body>
-</html>
 
+</html>
