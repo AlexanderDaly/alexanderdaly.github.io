@@ -1,41 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="./svg/Spy-06.svg">
     <title>Alexander Daly</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <link rel="stylesheet" href="./css/style.css">
+</head>
 
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
-            color: white;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="logo">Alexander Daly</a>
+            <nav>
+                <a href="./projects.html">Projects</a>
+                <a href="./blog.html">Blog</a>
+                <a href="https://x.com/HP_NoobCraft" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+            </nav>
+        </header>
 
-        #canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-            pointer-events: none;
-        }
+        <main>
+            <section class="hero">
+                <h1>Alexander Daly</h1>
+                <p class="subtitle">
+                    Developer & Creative Technologist<br>
+                    Building digital experiences with passion and precision
+                </p>
+            </section>
 
-        .content {
-            position: relative;
-            z-index: 3;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            text-align:<center>??
+            <section class="grid">
+                <a href="./projects.html" class="card">
+                    <div class="card-meta">Work</div>
+                    <h2 class="card-title">Projects</h2>
+                    <p class="card-excerpt">Explore my latest work in game development, AI, and creative coding.</p>
+                    <span class="card-link">View Projects &rarr;</span>
+                </a>
+
+                <a href="./blog.html" class="card">
+                    <div class="card-meta">Writing</div>
+                    <h2 class="card-title">Blog</h2>
+                    <p class="card-excerpt">Thoughts on code, design, and the digital landscape.</p>
+                    <span class="card-link">Read Blog &rarr;</span>
+                </a>
+            </section>
+        </main>
+
+        <footer>
+            <div class="copyright">&copy; 2024 Alexander Daly</div>
+            <div class="social-links">
+                <a href="https://github.com/alexanderdaly" target="_blank">GitHub</a>
+                <a href="https://x.com/HP_NoobCraft" target="_blank">X (Twitter)</a>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>
