@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title>Banana</title>
+  <desc>A simple vector banana with soft shading and a small stem.</desc>
+  <defs>
+    <linearGradient id="bananaGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE459"/>
+      <stop offset="100%" stop-color="#FFC543"/>
+    </linearGradient>
+    <linearGradient id="stemGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8C6239"/>
+      <stop offset="100%" stop-color="#5C3A1E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Banana body -->
+  <path
+    d="M22 36c-5 9-6 20-1 31 7 16 23 30 47 36 17 4 34 0 44-12 5-6 8-14 7-22-1-9-6-17-14-22-7-5-16-7-25-7-6 0-12 1-18 2-14 3-28-1-40-6Z"
+    fill="url(#bananaGradient)"
+    stroke="#C99D2B"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+
+  <!-- Highlight -->
+  <path
+    d="M38 48c-3 6-3 13 0 19 5 10 16 18 32 22 13 3 25 0 32-8"
+    fill="none"
+    stroke="#FFF4B8"
+    stroke-width="3"
+    stroke-linecap="round"
+    opacity="0.7"
+  />
+
+  <!-- Stem -->
+  <path
+    d="M22 36c0-6-2-10-6-13"
+    fill="none"
+    stroke="url(#stemGradient)"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+
+  <!-- Subtle spots -->
+  <ellipse cx="70" cy="88" rx="3" ry="2" fill="#B78B24" opacity="0.35"/>
+  <ellipse cx="84" cy="80" rx="2.5" ry="2" fill="#B78B24" opacity="0.35"/>
+  <ellipse cx="56" cy="76" rx="2.5" ry="2" fill="#B78B24" opacity="0.3"/>
+</svg>
+
+
+
