@@ -11,6 +11,93 @@
     <meta name="description"
         content="Why Gundam's funnels make far more sense as a distributed network of defensive interceptor drones than as tiny attack craft.">
     <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .sim-wrap {
+            position: relative;
+            margin: 36px 0 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #08090e;
+        }
+
+        .sim-canvas {
+            display: block;
+            width: 100%;
+            height: 440px;
+            cursor: crosshair;
+        }
+
+        .sim-hud {
+            position: absolute;
+            top: 12px;
+            left: 14px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.7rem;
+            line-height: 1.55;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.45);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .sim-hud b {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .sim-controls {
+            position: absolute;
+            bottom: 12px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .sim-btn {
+            font-family: var(--font-main);
+            font-size: 0.72rem;
+            letter-spacing: 0.5px;
+            color: var(--text-color);
+            background: rgba(0, 229, 255, 0.08);
+            border: 1px solid rgba(0, 229, 255, 0.35);
+            padding: 7px 13px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+        }
+
+        .sim-btn:hover {
+            background: rgba(0, 229, 255, 0.18);
+            border-color: var(--accent-color);
+        }
+
+        .sim-btn:active {
+            transform: scale(0.96);
+        }
+
+        .sim-btn.off {
+            color: #ff7a7a;
+            border-color: rgba(255, 90, 90, 0.5);
+            background: rgba(255, 70, 70, 0.08);
+        }
+
+        .article-content p.sim-cap {
+            font-size: 0.85rem;
+            color: var(--secondary-text);
+            text-align: center;
+            font-style: italic;
+            margin: 0 0 30px;
+        }
+
+        @media (max-width: 768px) {
+            .sim-canvas { height: 340px; }
+        }
+    </style>
 </head>
 
 <body>
@@ -81,6 +168,19 @@
                     <p>Each "F" is a defensive drone. Instead of protecting a sphere with radius 100 m, the ship
                         now protects a sphere with radius 10 km, 100 km, or even 1,000 km. The defensive volume
                         increases enormously.</p>
+
+                    <figure class="sim-wrap">
+                        <canvas id="funnel-sim" class="sim-canvas"></canvas>
+                        <div class="sim-hud" id="funnel-hud"></div>
+                        <div class="sim-controls">
+                            <button class="sim-btn" data-act="missile">Launch missile</button>
+                            <button class="sim-btn" data-act="salvo">Launch salvo</button>
+                            <button class="sim-btn" id="funnel-toggle" data-act="toggle">Funnels: ON</button>
+                        </div>
+                    </figure>
+                    <p class="sim-cap">Live model &mdash; a capital ship inside its drone shell. Threats arrive from the
+                        dark, the sensor mesh flags them, and the nearest funnels intercept at range. Switch the funnels
+                        off to see what reaches the hull. Click anywhere in the field to launch a threat yourself.</p>
 
                     <h2>Intercept Geometry</h2>
 
@@ -219,6 +319,156 @@
             </div>
         </footer>
     </div>
+
+    <script>
+    (function () {
+        const cv = document.getElementById('funnel-sim');
+        if (!cv) return;
+        const ctx = cv.getContext('2d');
+        if (!ctx) return;
+        const hud = document.getElementById('funnel-hud');
+        const toggleBtn = document.getElementById('funnel-toggle');
+        const TAU = Math.PI * 2;
+        let W = 0, H = 0, dpr = 1;
+
+        function resize() {
+            dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const r = cv.getBoundingClientRect();
+            W = r.width || 640; H = r.height || 440;
+            cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        resize();
+        if (window.ResizeObserver) { new ResizeObserver(resize).observe(cv); }
+        else { window.addEventListener('resize', resize); }
+
+        let funnels = true, intercepts = 0, leaked = 0, shieldFlash = 0;
+        const DRONE_N = 30;
+        const drones = [];
+        for (let i = 0; i < DRONE_N; i++) {
+            drones.push({ a: (i / DRONE_N) * TAU, da: 0.05 * (0.6 + Math.random() * 0.7), ph: Math.random() * TAU, cd: 0, fire: 0 });
+        }
+        const threats = [], beams = [], booms = [];
+
+        function geom() { return { cx: W / 2, cy: H / 2, shell: Math.min(W, H) * 0.33, ship: Math.max(9, Math.min(W, H) * 0.04) }; }
+        function dronePos(d, g, t) { const r = g.shell * (1 + 0.05 * Math.sin(t * 0.8 + d.ph)); return { x: g.cx + Math.cos(d.a) * r, y: g.cy + Math.sin(d.a) * r }; }
+
+        function spawn(hp, sx, sy) {
+            const g = geom(); let x, y;
+            if (sx != null) { x = sx; y = sy; }
+            else { const ang = Math.random() * TAU; const dist = Math.min(g.shell * 2.3, Math.hypot(W, H) * 0.52); x = g.cx + Math.cos(ang) * dist; y = g.cy + Math.sin(ang) * dist; }
+            const dx = g.cx - x, dy = g.cy - y, d = Math.hypot(dx, dy) || 1; const sp = 58 + Math.random() * 34;
+            threats.push({ x, y, vx: dx / d * sp, vy: dy / d * sp, hp: hp || 1, max: hp || 1, seed: Math.random() * TAU });
+        }
+        function salvo() { for (let i = 0; i < 5; i++) { setTimeout(() => spawn(1), i * 120); } }
+        function boom(x, y, scale, hostile) { booms.push({ x, y, r0: 2, r1: (18 + Math.random() * 10) * (scale || 1), life: 0.5, maxlife: 0.5, hostile: !!hostile }); }
+
+        cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(); spawn(1, e.clientX - r.left, e.clientY - r.top); });
+        document.querySelectorAll('.sim-controls .sim-btn').forEach(b => {
+            b.addEventListener('click', () => {
+                const a = b.dataset.act;
+                if (a === 'missile') spawn(1);
+                else if (a === 'salvo') salvo();
+                else if (a === 'toggle') { funnels = !funnels; toggleBtn.textContent = 'Funnels: ' + (funnels ? 'ON' : 'OFF'); toggleBtn.classList.toggle('off', !funnels); }
+            });
+        });
+
+        let running = true;
+        if (window.IntersectionObserver) { new IntersectionObserver(es => { es.forEach(en => running = en.isIntersecting); }, { threshold: 0.05 }).observe(cv); }
+        let last = performance.now(), acc = 0, salvoAcc = 0, clock = 0;
+
+        function frame(now) { const dt = Math.min((now - last) / 1000, 0.05); last = now; if (running) step(dt); requestAnimationFrame(frame); }
+
+        function step(dt) {
+            clock += dt;
+            acc += dt; if (acc > 1.7) { acc = 0; spawn(Math.random() < 0.2 ? 3 : 1); }
+            salvoAcc += dt; if (salvoAcc > 8) { salvoAcc = 0; if (funnels) salvo(); }
+
+            const g = geom();
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(8,9,14,0.34)'; ctx.fillRect(0, 0, W, H);
+
+            const dp = new Array(drones.length);
+            for (let i = 0; i < drones.length; i++) { const d = drones[i]; d.a += d.da * dt; if (d.cd > 0) d.cd -= dt; if (d.fire > 0) d.fire -= dt; dp[i] = dronePos(d, g, clock); }
+
+            if (funnels) {
+                ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 1; const md = g.shell * 0.55;
+                for (let i = 0; i < dp.length; i++) {
+                    for (let j = i + 1; j < dp.length; j++) {
+                        const ddx = dp[i].x - dp[j].x, ddy = dp[i].y - dp[j].y, dd = ddx * ddx + ddy * ddy;
+                        if (dd < md * md) { const al = 0.10 * (1 - Math.sqrt(dd) / md); ctx.strokeStyle = 'rgba(0,229,255,' + al.toFixed(3) + ')'; ctx.beginPath(); ctx.moveTo(dp[i].x, dp[i].y); ctx.lineTo(dp[j].x, dp[j].y); ctx.stroke(); }
+                    }
+                }
+            }
+
+            const sensor = g.shell * 1.7;
+            for (let ti = threats.length - 1; ti >= 0; ti--) {
+                const tr = threats[ti]; tr.x += tr.vx * dt; tr.y += tr.vy * dt;
+                const distShip = Math.hypot(tr.x - g.cx, tr.y - g.cy);
+                if (funnels) {
+                    let avail = [];
+                    for (let i = 0; i < drones.length; i++) { if (drones[i].cd > 0) continue; const dx = tr.x - dp[i].x, dy = tr.y - dp[i].y, dist = Math.hypot(dx, dy); if (dist < sensor) avail.push({ i, dist }); }
+                    avail.sort((a, b) => a.dist - b.dist);
+                    const shots = Math.min(avail.length, tr.hp > 1 ? 3 : 1);
+                    for (let s = 0; s < shots; s++) { const di = avail[s].i; drones[di].cd = 0.45 + Math.random() * 0.2; drones[di].fire = 0.14; beams.push({ x1: dp[di].x, y1: dp[di].y, x2: tr.x, y2: tr.y, life: 0.13, max: 0.13 }); tr.hp -= 1; }
+                }
+                if (tr.hp <= 0) { boom(tr.x, tr.y, tr.max > 1 ? 1.5 : 1); intercepts++; threats.splice(ti, 1); continue; }
+                if (distShip < g.ship + 5) { leaked++; shieldFlash = 0.5; boom(tr.x, tr.y, 1.2, true); threats.splice(ti, 1); continue; }
+            }
+
+            ctx.globalCompositeOperation = 'lighter';
+            for (let i = beams.length - 1; i >= 0; i--) {
+                const b = beams[i], al = b.life / b.max;
+                ctx.strokeStyle = 'rgba(120,240,255,' + al.toFixed(3) + ')'; ctx.lineWidth = 2.2 * al + 0.5; ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+                ctx.strokeStyle = 'rgba(255,255,255,' + (al * 0.7).toFixed(3) + ')'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+                b.life -= dt; if (b.life <= 0) beams.splice(i, 1);
+            }
+
+            for (const tr of threats) {
+                const pulse = 0.6 + 0.4 * Math.sin(clock * 8 + tr.seed);
+                ctx.globalCompositeOperation = 'lighter';
+                const rad = 9 + tr.max * 2;
+                const grd = ctx.createRadialGradient(tr.x, tr.y, 0, tr.x, tr.y, rad);
+                grd.addColorStop(0, 'rgba(255,180,90,' + (0.9 * pulse) + ')'); grd.addColorStop(0.4, 'rgba(255,70,50,0.6)'); grd.addColorStop(1, 'rgba(255,40,40,0)');
+                ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(tr.x, tr.y, rad, 0, TAU); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(tr.x, tr.y, 1.6, 0, TAU); ctx.fill();
+            }
+
+            for (let i = booms.length - 1; i >= 0; i--) {
+                const e = booms[i]; e.life -= dt; const k = 1 - e.life / e.maxlife; const rr = e.r0 + (e.r1 - e.r0) * k; const al = Math.max(0, e.life / e.maxlife);
+                ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = (e.hostile ? 'rgba(255,80,80,' : 'rgba(0,229,255,') + al.toFixed(3) + ')'; ctx.lineWidth = 2 * al + 0.4; ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, TAU); ctx.stroke();
+                if (e.life <= 0) booms.splice(i, 1);
+            }
+
+            ctx.globalCompositeOperation = 'lighter';
+            const sf = Math.max(0, shieldFlash); if (shieldFlash > 0) shieldFlash -= dt;
+            const shieldCol = sf > 0 ? '255,90,90' : '0,229,255';
+            ctx.strokeStyle = 'rgba(' + shieldCol + ',' + (0.25 + 0.3 * sf + 0.08 * Math.sin(clock * 3)).toFixed(3) + ')'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(g.cx, g.cy, g.ship * 1.9, 0, TAU); ctx.stroke();
+            ctx.fillStyle = 'rgba(' + shieldCol + ',0.9)'; ctx.beginPath();
+            for (let k = 0; k < 6; k++) { const an = clock * 0.3 + k / 6 * TAU, px = g.cx + Math.cos(an) * g.ship, py = g.cy + Math.sin(an) * g.ship; if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(g.cx, g.cy, g.ship * 0.35, 0, TAU); ctx.fill();
+
+            for (let i = 0; i < drones.length; i++) {
+                const d = drones[i], p = dp[i], firing = d.fire > 0;
+                ctx.globalCompositeOperation = 'lighter';
+                const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, firing ? 9 : 6);
+                gr.addColorStop(0, firing ? 'rgba(180,255,255,0.95)' : 'rgba(0,229,255,0.85)'); gr.addColorStop(1, 'rgba(0,229,255,0)');
+                ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, firing ? 9 : 6, 0, TAU); ctx.fill();
+                ctx.fillStyle = funnels ? (firing ? '#eaffff' : '#9fefff') : 'rgba(120,140,150,0.5)'; ctx.beginPath(); ctx.arc(p.x, p.y, 1.8, 0, TAU); ctx.fill();
+            }
+
+            if (hud) {
+                hud.innerHTML = '<div>DEFENSE BUBBLE — <b>' + (funnels ? 'ACTIVE' : 'OFFLINE') + '</b></div>' +
+                    '<div>Intercepts: <b>' + intercepts + '</b></div>' +
+                    '<div>Hull impacts: <b>' + leaked + '</b></div>' +
+                    '<div>Drones: <b>' + (funnels ? DRONE_N : 0) + '</b> &middot; Threats: <b>' + threats.length + '</b></div>';
+            }
+        }
+
+        requestAnimationFrame(frame);
+    })();
+    </script>
 </body>
 
 </html>
