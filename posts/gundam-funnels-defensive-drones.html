@@ -642,7 +642,7 @@ dwell to kill  ~  required energy / intensity</code></pre>
         // spot widens with distance, so the same beam is murderous up close and feeble far out.
         const BEAM_REF = 2.7;   // kill-energy/sec, one beam, at range = shell R
         const DEFLECT  = 20;    // ablation recoil: lateral push per unit absorbed energy
-        const LIGHT    = 5000;  // "c" in model units — beam lag = range/LIGHT (≈ instantaneous)
+        const LIGHT    = 60000; // "c" in model units — beam lag = range/LIGHT, sub-pixel even at max range
 
         // Fibonacci-sphere directions, rotated for a pseudo-3D shell.
         const GA = Math.PI * (3 - Math.sqrt(5));
