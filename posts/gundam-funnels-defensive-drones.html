@@ -388,10 +388,19 @@
                     <h2 id="sim">A live model</h2>
 
                     <p>Rather than just assert all this, here it is running. A capital ship sits inside a rotating
-                        spherical shell of funnels. Threats arrive from the dark; the mesh detects them, the nearest
-                        drones with charge and a clear line slew onto target and hold a beam until the round's thermal
-                        margin is spent. Lasers don't punch holes instantly&mdash;they <em>dwell</em>&mdash;so watch
-                        the beams linger.</p>
+                        spherical shell of funnels. Threats arrive from the dark; the sensor mesh has to build a firm
+                        track before any node fires, then the nearest charged drones hold a beam until the round's
+                        thermal margin is spent. Lasers don't punch holes instantly&mdash;they <em>dwell</em>&mdash;so
+                        watch the beams linger.</p>
+
+                    <p>The model tries to respect the physics it's arguing for, not just look the part.<sup><a
+                        href="#fn3" id="ref3">3</a></sup> Beam intensity falls as 1/r&sup2;, so the same drone that
+                        vaporizes a missile up close barely scorches one at the shell's edge&mdash;and the beams are
+                        drawn that way, tight and bright near in, wide and faint far out. Detection follows the radar
+                        law (~1/r&#8308;), so locks firm up only as a threat closes. Guided missiles steer and weave
+                        under a finite turn rate; the magenta kinetic-kill vehicles are inert and just coast, which
+                        makes them faster but lets a sustained beam's ablation recoil walk them off course. Switch the
+                        funnels off to watch the hull take it bare.</p>
 
                     <figure class="sim-wrap">
                         <canvas id="funnel-sim" class="sim-canvas"></canvas>
@@ -564,6 +573,11 @@ dwell to kill  ~  required energy / intensity</code></pre>
                             <li id="fn2">Shipboard high-energy lasers in the ~60&ndash;150 kW class have been tested
                                 at sea over the past decade; the figure here is illustrative of that publicly-discussed
                                 order of magnitude, not any specific system. <a href="#ref2">&#8617;</a></li>
+                            <li id="fn3">The simulation is a 2-D stylized slice, not a physics engine &mdash; ranges,
+                                energies and timescales are in arbitrary "model units" tuned for legibility. The
+                                <em>scaling laws</em> are what's meant to be honest: inverse-square beam intensity,
+                                inverse-fourth-power radar return, finite-turn-rate guidance, ballistic kinetics, and
+                                ablation recoil. <a href="#ref3">&#8617;</a></li>
                         </ol>
                     </div>
 
@@ -614,12 +628,21 @@ dwell to kill  ~  required energy / intensity</code></pre>
         const threats = [], beams = [], booms = [], stars = [];
         const log = [];
 
-        // Threat archetypes. dwell = laser-seconds of beam needed to kill.
+        // Threat archetypes. eReq = kill energy (laser-seconds at the reference range).
+        // Guided rounds steer toward the ship under a finite turn rate and weave to evade.
+        // A KKV is inert: once launched it coasts ballistically and cannot correct — so it
+        // is fast and hard to deflect, but it can't chase a maneuvering aimpoint.
         const TYPES = {
-            missile: { dwell: 0.55, speed: 60, rad: 4.5, col: [255, 176, 96], hp: 1, jink: 0.5 },
-            heavy:   { dwell: 1.6,  speed: 42, rad: 7.0, col: [255, 120, 70], hp: 1, jink: 0.2 },
-            kkv:     { dwell: 0.28, speed: 132, rad: 3.0, col: [255, 90, 220], hp: 1, jink: 0.05 }
+            missile: { eReq: 1.0, speed: 60,  rad: 4.5, col: [255, 176, 96], guided: true,  turn: 0.9, accel: 16, evade: 0.40 },
+            heavy:   { eReq: 3.2, speed: 40,  rad: 7.0, col: [255, 120, 70], guided: true,  turn: 0.5, accel: 9,  evade: 0.14 },
+            kkv:     { eReq: 0.7, speed: 150, rad: 3.0, col: [255, 90, 220], guided: false, turn: 0,   accel: 0,  evade: 0 }
         };
+        // Laser energetics. At the shell radius (range = R) one beam deposits BEAM_REF
+        // kill-energy per second; intensity falls as 1/range^2 because a diffraction-limited
+        // spot widens with distance, so the same beam is murderous up close and feeble far out.
+        const BEAM_REF = 2.7;   // kill-energy/sec, one beam, at range = shell R
+        const DEFLECT  = 20;    // ablation recoil: lateral push per unit absorbed energy
+        const LIGHT    = 5000;  // "c" in model units — beam lag = range/LIGHT (≈ instantaneous)
 
         // Fibonacci-sphere directions, rotated for a pseudo-3D shell.
         const GA = Math.PI * (3 - Math.sqrt(5));
@@ -670,9 +693,10 @@ dwell to kill  ~  required energy / intensity</code></pre>
             const dx = g.cx - x, dy = g.cy - y, d = Math.hypot(dx, dy) || 1;
             threats.push({
                 type, x, y,
-                vx: dx / d * t.speed, vy: dy / d * t.speed,
-                hp: t.dwell, max: t.dwell, rad: t.rad, col: t.col,
-                jink: t.jink, seed: (clock * 13.7 + x) % TAU, age: 0
+                vx: dx / d * t.speed, vy: dy / d * t.speed, spd: t.speed,
+                e: 0, eReq: t.eReq, rad: t.rad, col: t.col,
+                guided: t.guided, turn: t.turn, accel: t.accel, evade: t.evade,
+                track: 0, seed: (clock * 13.7 + x) % TAU, age: 0
             });
         }
         function salvo() { for (let i = 0; i < 6; i++) setTimeout(() => spawn(Math.random() < 0.3 ? 'heavy' : 'missile'), i * 110); }
@@ -761,39 +785,73 @@ dwell to kill  ~  required energy / intensity</code></pre>
             for (let ti = threats.length - 1; ti >= 0; ti--) {
                 const tr = threats[ti];
                 tr.age += dt;
-                // light jink for missiles (lateral wobble), KKVs basically straight
-                const ux = tr.vx, uy = tr.vy, sp = Math.hypot(ux, uy) || 1;
-                const nx = -uy / sp, ny = ux / sp;
-                const wob = Math.sin(tr.age * 3 + tr.seed) * tr.jink * 16;
-                tr.x += (tr.vx + nx * wob) * dt;
-                tr.y += (tr.vy + ny * wob) * dt;
+                let sp = Math.hypot(tr.vx, tr.vy) || 1;
+
+                // --- kinematics ---
+                if (tr.guided) {
+                    // proportional steering toward the ship, capped by a finite turn rate,
+                    // plus a lateral weave to complicate the firing solution.
+                    const desx = g.cx - tr.x, desy = g.cy - tr.y, dd = Math.hypot(desx, desy) || 1;
+                    const hx = tr.vx / sp, hy = tr.vy / sp;       // current heading
+                    const tx = desx / dd, ty = desy / dd;         // desired heading
+                    const err = Math.atan2(hx * ty - hy * tx, hx * tx + hy * ty);
+                    const turn = Math.max(-tr.turn * dt, Math.min(tr.turn * dt, -err));
+                    const ca = Math.cos(turn), sa = Math.sin(turn);
+                    const nhx = hx * ca - hy * sa, nhy = hx * sa + hy * ca;
+                    sp = Math.min(tr.spd, sp + tr.accel * dt);     // burn up to cruise speed
+                    tr.vx = nhx * sp; tr.vy = nhy * sp;
+                    const px = -tr.vy / sp, py = tr.vx / sp;
+                    const wob = Math.sin(tr.age * 4 + tr.seed) * tr.evade * tr.spd;
+                    tr.x += (tr.vx + px * wob) * dt; tr.y += (tr.vy + py * wob) * dt;
+                } else {
+                    // inert kinetic round — pure ballistic coast, no guidance
+                    tr.x += tr.vx * dt; tr.y += tr.vy * dt;
+                }
                 const distShip = Math.hypot(tr.x - g.cx, tr.y - g.cy);
 
                 if (funnels) {
-                    // gather available shooters: alive, charged, in sensor range, prefer front + close
-                    let avail = [];
+                    // --- distributed sensor mesh: per-node return scales ~1/range^4 (radar
+                    // equation). Track builds toward a firm lock; no weapon release until locked,
+                    // so outer nodes acquire a threat well before it nears the hull.
+                    const cand = [];
                     for (let i = 0; i < drones.length; i++) {
-                        const d = drones[i]; if (!d.alive || d.cap < 0.3 || !dp[i]) continue;
-                        const dx = tr.x - dp[i].x, dy = tr.y - dp[i].y, dist = Math.hypot(dx, dy);
-                        if (dist < sensor) avail.push({ i, score: dist - dp[i].z * 40 });
+                        const d = drones[i]; if (!d.alive || !dp[i]) continue;
+                        const dx = tr.x - dp[i].x, dy = tr.y - dp[i].y, dist = Math.hypot(dx, dy) || 1;
+                        if (dist < sensor) cand.push({ i, dist });
                     }
-                    avail.sort((a, b) => a.score - b.score);
-                    const shots = Math.min(avail.length, tr.max > 1 ? 3 : (tr.type === 'kkv' ? 2 : 1));
-                    for (let s = 0; s < shots; s++) {
-                        const di = avail[s].i, d = drones[di];
-                        // lead point: where the threat will be over a short flight (beam aim, not projectile)
-                        const lead = 0.12;
-                        const aimx = tr.x + tr.vx * lead, aimy = tr.y + tr.vy * lead;
-                        d.fire = 0.13; d.cap -= 0.34 + (tr.type === 'kkv' ? 0.12 : 0);
-                        d.cap = Math.max(0, d.cap);
-                        beams.push({ x1: dp[di].x, y1: dp[di].y, x2: aimx, y2: aimy, life: 0.12, max: 0.12, hot: tr.type === 'kkv' });
-                        tr.hp -= dt * 4.0; // dwell accumulation
+                    cand.sort((a, b) => a.dist - b.dist);
+                    let sense = 0;
+                    for (let s = 0; s < Math.min(4, cand.length); s++) { const rr = cand[s].dist / g.R; sense += 1 / (rr * rr * rr * rr); }
+                    tr.track = Math.min(1.3, tr.track + sense * dt * 3.0);
+
+                    if (tr.track >= 1) {
+                        // shooters: alive, charged, locked — best geometry first (close + front)
+                        const avail = cand.filter(c => drones[c.i].cap >= 0.3)
+                            .map(c => ({ i: c.i, dist: c.dist, score: c.dist - dp[c.i].z * 40 }))
+                            .sort((a, b) => a.score - b.score);
+                        const shots = Math.min(avail.length, tr.eReq > 2 ? 4 : (tr.type === 'kkv' ? 2 : tr.eReq > 0.9 ? 2 : 1));
+                        for (let s = 0; s < shots; s++) {
+                            const c = avail[s], di = c.i, d = drones[di];
+                            // light-speed weapon: aim at present position plus negligible beam-lag lead
+                            const lag = c.dist / LIGHT;
+                            const aimx = tr.x + tr.vx * lag, aimy = tr.y + tr.vy * lag;
+                            // diffraction: intensity ~ 1/range^2, normalised to BEAM_REF at range R
+                            const rr = c.dist / g.R;
+                            const dE = (BEAM_REF / Math.max(0.04, rr * rr)) * dt;
+                            tr.e += dE;
+                            // ablation recoil pushes the round away from the beam source; a
+                            // ballistic KKV keeps the nudge, a guided round steers it back out.
+                            const bx = tr.x - dp[di].x, by = tr.y - dp[di].y, bl = Math.hypot(bx, by) || 1;
+                            tr.vx += (bx / bl) * dE * DEFLECT; tr.vy += (by / bl) * dE * DEFLECT;
+                            d.fire = 0.13; d.cap = Math.max(0, d.cap - 0.85 * dt);
+                            beams.push({ x1: dp[di].x, y1: dp[di].y, x2: aimx, y2: aimy, life: 0.1, max: 0.1, hot: tr.type === 'kkv', w: rr });
+                        }
                     }
                 }
 
-                if (tr.hp <= 0) {
-                    boom(tr.x, tr.y, tr.max > 1 ? 1.5 : 1); intercepts++;
-                    pushLog('> intercept @ ' + Math.round(distShip / g.R * 100) + ' u');
+                if (tr.e >= tr.eReq) {
+                    boom(tr.x, tr.y, tr.eReq > 2 ? 1.5 : 1); intercepts++;
+                    pushLog('> kill @ ' + Math.round(distShip / g.R * 100) + ' u');
                     threats.splice(ti, 1); continue;
                 }
                 if (distShip < g.ship + 6) {
@@ -814,10 +872,13 @@ dwell to kill  ~  required energy / intensity</code></pre>
             ctx.globalCompositeOperation = 'lighter';
             for (let i = beams.length - 1; i >= 0; i--) {
                 const b = beams[i], al = b.life / b.max;
+                const w = b.w || 1;                       // range / shell-R
+                const spread = 1.1 + w * 2.4;             // diffraction: spot widens with range
+                const bright = al / Math.max(0.5, w);     // ...and the same power dims with range
                 const col = b.hot ? '255,150,240' : '120,240,255';
-                ctx.strokeStyle = 'rgba(' + col + ',' + al.toFixed(3) + ')'; ctx.lineWidth = 2.4 * al + 0.5;
+                ctx.strokeStyle = 'rgba(' + col + ',' + Math.min(0.9, bright).toFixed(3) + ')'; ctx.lineWidth = spread;
                 ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
-                ctx.strokeStyle = 'rgba(255,255,255,' + (al * 0.7).toFixed(3) + ')'; ctx.lineWidth = 0.8;
+                ctx.strokeStyle = 'rgba(255,255,255,' + Math.min(0.8, bright * 0.8).toFixed(3) + ')'; ctx.lineWidth = Math.max(0.5, spread * 0.3);
                 ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
                 b.life -= dt; if (b.life <= 0) beams.splice(i, 1);
             }
@@ -833,10 +894,11 @@ dwell to kill  ~  required energy / intensity</code></pre>
                 grd.addColorStop(0.4, 'rgba(' + c[0] + ',' + Math.round(c[1] * 0.5) + ',' + Math.round(c[2] * 0.5) + ',0.55)');
                 grd.addColorStop(1, 'rgba(' + c[0] + ',40,40,0)');
                 ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(tr.x, tr.y, rad, 0, TAU); ctx.fill();
-                // damage ring (how cooked it is)
-                if (tr.hp < tr.max) {
-                    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.4;
-                    ctx.beginPath(); ctx.arc(tr.x, tr.y, rad + 2, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - tr.hp / tr.max)); ctx.stroke();
+                // damage ring (accumulated kill-energy as a fraction of what's required)
+                if (tr.e > 0) {
+                    const cook = Math.min(1, tr.e / tr.eReq);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.4;
+                    ctx.beginPath(); ctx.arc(tr.x, tr.y, rad + 2, -Math.PI / 2, -Math.PI / 2 + TAU * cook); ctx.stroke();
                 }
                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(tr.x, tr.y, 1.6, 0, TAU); ctx.fill();
             }
@@ -885,7 +947,8 @@ dwell to kill  ~  required energy / intensity</code></pre>
                     '<div>Intercepts: <b>' + intercepts + '</b></div>' +
                     '<div>Hull impacts: <b' + (leaked ? ' class="warn"' : '') + '>' + leaked + '</b></div>' +
                     '<div>Drones: <b>' + (funnels ? aliveN : 0) + '</b>/' + DRONE_N + ' &middot; Lost: <b>' + dronesLost + '</b></div>' +
-                    '<div>Threats: <b>' + threats.length + '</b></div>';
+                    '<div>Threats: <b>' + threats.length + '</b></div>' +
+                    '<div style="opacity:.6">Beam I &prop; 1/r&sup2; &middot; radar &prop; 1/r&#8308;</div>';
             }
             if (logEl) { logEl.innerHTML = log.map(l => '<div>' + l + '</div>').join(''); }
         }
