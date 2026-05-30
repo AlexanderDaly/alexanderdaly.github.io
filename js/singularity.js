@@ -8,8 +8,13 @@
 (function () {
     'use strict';
 
-    const canvas = document.getElementById('singularity-bg');
-    if (!canvas) return;
+    let canvas = document.getElementById('singularity-bg');
+    if (!canvas) {
+        // Self-mount the background canvas (matches the previous module's behaviour).
+        canvas = document.createElement('canvas');
+        canvas.id = 'singularity-bg';
+        document.body.prepend(canvas);
+    }
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 

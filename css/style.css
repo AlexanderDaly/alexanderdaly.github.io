@@ -445,6 +445,12 @@ nav a.active {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    /* descenders (e.g. the "g" in "Blog") need vertical room, else
+       background-clip:text + the glow get cropped by a tight line box */
+    line-height: 1.18;
+    padding-bottom: 0.16em;
+    width: fit-content;
+    max-width: 100%;
     filter: drop-shadow(0 0 26px rgba(255, 60, 80, 0.35));
 }
 
@@ -591,6 +597,12 @@ nav a.active {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    /* descenders (e.g. the "g" in "Blog") need vertical room, else
+       background-clip:text + the glow get cropped by a tight line box */
+    line-height: 1.18;
+    padding-bottom: 0.16em;
+    width: fit-content;
+    max-width: 100%;
     filter: drop-shadow(0 0 26px rgba(255, 60, 80, 0.35));
 }
 
