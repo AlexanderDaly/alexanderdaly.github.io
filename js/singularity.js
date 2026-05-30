@@ -46,7 +46,8 @@
     // ---- particle disk ----
     let particles = [];
     function buildParticles() {
-        const n = W < 700 ? 1100 : (W < 1300 ? 1800 : 2600);
+        // +50% density over the prior 1100 / 1800 / 2600 tiers
+        const n = W < 700 ? 1650 : (W < 1300 ? 2700 : 3900);
         particles = new Array(n);
         for (let i = 0; i < n; i++) particles[i] = spawnParticle(true);
     }
@@ -238,18 +239,35 @@
             const speed = omega * rr;
             const trail = Math.min(R * 0.16, 1.5 + speed * 0.05);
 
+            // proximity to the singularity: 0 at the rim, 1 at the inner edge,
+            // ramped non-linearly so the glow surges as material falls inward
+            // (mimics the steep rise in temperature/intensity near the hole).
+            const prox = u * u * (3 - 2 * u);                // smoothstep(u)
+            const glow = 0.35 + 2.6 * prox * prox;           // intensity multiplier
+
             // relativistic Doppler beaming: the limb coming toward the viewer (here
             // mapped to the left, vx<0) brightens; cursor adds a bias.
             const beam = 1 + 1.4 * (-vx) + dopBias * 1.2;
-            const bright = Math.max(0.15, beam) * flareBoost;
+            const bright = Math.max(0.15, beam) * flareBoost * glow;
 
             const col = temp(u * 0.9 + 0.08);
             // hot inner material washes toward white as it brightens
-            const wash = Math.min(1, (u * 0.5 + (beam - 1) * 0.35));
+            const wash = Math.min(1, (prox * 0.7 + (beam - 1) * 0.35));
             const r8 = (col[0] + (255 - col[0]) * wash) | 0;
             const g8 = (col[1] + (255 - col[1]) * wash) | 0;
             const b8 = (col[2] + (255 - col[2]) * wash) | 0;
-            const a = Math.min(0.85, (0.05 + 0.16 * u) * bright);
+            const a = Math.min(0.9, (0.045 + 0.13 * u) * bright);
+
+            // soft glow halo, intensifying toward the singularity — a wider, faint
+            // underlay stroke so close-in particles bloom
+            if (prox > 0.12) {
+                ctx.strokeStyle = 'rgba(' + r8 + ',' + g8 + ',' + b8 + ',' + Math.min(0.4, a * 0.45 * prox).toFixed(3) + ')';
+                ctx.lineWidth = (0.6 + p.thick * 1.3 + u * 1.2) + 2.5 + prox * 5.5;
+                ctx.beginPath();
+                ctx.moveTo(x - vx * trail, y - vy * trail);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
 
             ctx.strokeStyle = 'rgba(' + r8 + ',' + g8 + ',' + b8 + ',' + a.toFixed(3) + ')';
             ctx.lineWidth = 0.6 + p.thick * 1.3 + u * 1.2;
@@ -258,10 +276,10 @@
             ctx.lineTo(x, y);
             ctx.stroke();
 
-            // bright head for the hottest, fastest particles
-            if (u > 0.45) {
-                ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.7, a * 1.1).toFixed(3) + ')';
-                const hs = 0.6 + u * 0.9;
+            // bright white-hot head for the closest, fastest particles
+            if (prox > 0.4) {
+                ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.85, a * 1.1).toFixed(3) + ')';
+                const hs = 0.6 + prox * 1.4;
                 ctx.fillRect(x - hs * 0.5, y - hs * 0.5, hs, hs);
             }
         }
