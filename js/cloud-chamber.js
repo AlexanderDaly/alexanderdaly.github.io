@@ -70,6 +70,7 @@
     }
 
     function drawBackground() {
+        ctx.globalCompositeOperation = 'source-over'; // self-contained: never inherit 'lighter'
         const g = ctx.createLinearGradient(0, 0, 0, H);
         g.addColorStop(0, '#070912');
         g.addColorStop(0.55, '#080a14');
@@ -341,9 +342,10 @@
     let rafId = 0;
 
     function frameStep(now) {
+        // Genuinely halt when inactive so the browser can throttle — no phantom
+        // frames. startLoop() resumes from the visibility/intersection handlers.
+        if (!(running && visible)) { rafId = 0; return; }
         rafId = requestAnimationFrame(frameStep);
-        const active = running && visible;
-        if (!active) { last = now; return; }
 
         const dt = Math.min((now - last) / 1000, 0.05);
         last = now;
@@ -395,14 +397,14 @@
 
     document.addEventListener('visibilitychange', () => {
         visible = !document.hidden;
-        if (visible) last = performance.now();
+        if (visible && running) startLoop(); else stopLoop();
     });
 
     if ('IntersectionObserver' in window) {
         const io = new IntersectionObserver((entries) => {
             // pause when the chamber is scrolled out of view, resume when back
             running = entries.some(e => e.isIntersecting);
-            if (running && visible) last = performance.now();
+            if (running && visible) startLoop(); else stopLoop();
         }, { threshold: 0, rootMargin: '120px' });
         io.observe(frame);
     }
