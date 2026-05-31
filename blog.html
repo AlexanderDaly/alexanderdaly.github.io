@@ -28,6 +28,33 @@
                 <p class="subtitle">Thoughts on code, design, speculative engineering, and the digital landscape.</p>
             </section>
 
+            <section class="cloud-chamber-demo" aria-labelledby="cloud-chamber-title">
+                <div class="cloud-chamber-copy">
+                    <p class="eyebrow">Fundamental particle physics</p>
+                    <h2 id="cloud-chamber-title">Invisible Particle Rain</h2>
+                    <p>A simulated cloud chamber: charged particles leave ionization trails through
+                        supersaturated vapor. The tracks below are a visual model, not live detector data.</p>
+                    <p style="margin-top:14px;">Cloud chambers make the invisible briefly visible. In the
+                        real instrument, ionizing particles seed condensation trails through supersaturated
+                        vapor. This ambient model recreates the visual language of those tracks: long
+                        muon-like streaks, short dense alpha-like bursts, and occasional branching events.</p>
+                    <span class="cloud-chamber-note">Simulated educational model &mdash; not live detector data.</span>
+                </div>
+                <div class="cloud-chamber-frame">
+                    <canvas id="cloud-chamber-canvas"
+                        role="img"
+                        aria-label="A simulated cloud chamber animation. Luminous blue-white streaks drift across a dark vapor-filled chamber: long thin muon-like tracks, shorter wandering beta-like tracks, short dense alpha-like bursts, and rare branching shower events. This is an educational visual model, not live detector data."></canvas>
+                    <div class="cloud-chamber-overlay" aria-hidden="true">
+                        <div class="live"><span class="dot"></span>Simulated &middot; not live detection</div>
+                        <div class="status-strip">
+                            <span>ambient ionization model</span>
+                            <span>track persistence: simulated</span>
+                            <span>local observable analogue</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="grid">
                 <a href="./posts/gundam-funnels-defensive-drones.html" class="card">
                     <div class="card-meta">Speculative Engineering &middot; May 2026 &middot; ~11 min</div>
@@ -56,6 +83,7 @@
             </div>
         </footer>
     </div>
+    <script defer src="./js/cloud-chamber.js"></script>
 </body>
 
 </html>
