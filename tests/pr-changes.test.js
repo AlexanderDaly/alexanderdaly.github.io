@@ -360,24 +360,14 @@ describe('banana.svg', () => {
 
   // --- Trailing whitespace / newline check (the actual PR change) ---
 
-  it('does not end with more than four trailing newlines after </svg>', () => {
-    // The PR removed one trailing blank line. The current valid state has
-    // 4 trailing newlines after </svg> (3 explicit blank lines + EOF newline).
+  it('has exactly 4 trailing newlines after </svg> (one blank line was removed)', () => {
+    // Before the PR: 5 trailing newlines. After the PR: 4.
     const afterClosingTag = content.split('</svg>').slice(1).join('</svg>');
     const trailingNewlines = (afterClosingTag.match(/\n/g) || []).length;
-    assert.ok(
-      trailingNewlines <= 4,
-      `Expected at most 4 trailing newlines after </svg>, got ${trailingNewlines}`
-    );
-  });
-
-  it('had exactly one trailing blank line removed (now has fewer than 5 trailing newlines)', () => {
-    // Before the PR: 5 trailing newlines after </svg>. After the PR: 4.
-    const afterClosingTag = content.split('</svg>').slice(1).join('</svg>');
-    const trailingNewlines = (afterClosingTag.match(/\n/g) || []).length;
-    assert.ok(
-      trailingNewlines < 5,
-      `The extra trailing newline should have been removed; found ${trailingNewlines} trailing newlines`
+    assert.equal(
+      trailingNewlines,
+      4,
+      `Expected exactly 4 trailing newlines after </svg>, got ${trailingNewlines}`
     );
   });
 
