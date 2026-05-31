@@ -19,7 +19,7 @@ Preferred reporting path:
 1. Use GitHub’s **Report a vulnerability** / private vulnerability reporting flow for this repository, if available.
 2. If private reporting is not available, open a GitHub issue with a brief, non-sensitive message asking for a secure contact path. Please do **not** include exploit details, secrets, payloads, or proof-of-concept code in a public issue.
 
-GitHub notes that private vulnerability reporting is separate from `SECURITY.md` and only works for public repositories where the feature is enabled. If it is not enabled, reporters should follow the repository security policy or ask maintainers for a preferred security contact. :contentReference[oaicite:1]{index=1}
+GitHub notes that private vulnerability reporting is separate from `SECURITY.md` and only works for public repositories where the feature is enabled. If it is not enabled, reporters should follow the repository security policy or ask maintainers for a preferred security contact.
 
 ## What to Include
 
