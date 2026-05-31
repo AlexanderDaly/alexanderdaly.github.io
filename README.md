@@ -1,3 +1,35 @@
+<pre>
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│    ╔═══╗ ╦   ╔═══╗ ═╗╔═ ╔═══╗ ╦╗  ╦ ╔═══  ╔═══╗ ╔═══╗                │
+│    ╠═══╣ ║   ╠═══╝  ╠╣  ╠═══╣ ║ ╚╗║ ║  ╔╗ ╠═══╝ ╠═╦═╝                │
+│    ╩   ╩ ╩══ ╩═══╝ ═╝╚═ ╩   ╩ ╩  ╚╩ ╚══╝╩ ╩═══╝ ╩ ╚═                 │
+│                                                                      │
+│           ╔═══  ╔═══╗ ╦    ╦  ╦                                      │
+│           ║  ╔╗ ╠═══╣ ║    ╚══╣                                      │
+│           ╚══╝╩ ╩   ╩ ╩═══    ╩                                      │
+│                                                                      │
+│    ┌─────────────────────────────────────────────────────────────┐   │
+│    │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │   │
+│    │    ░  @0xHondo  ·  systems  ·  simulations  ·  worlds  ░    │   │
+│    │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │   │
+│    └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+</pre>
+
+<p align="center">
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=58A6FF&center=true&vCenter=true&width=500&lines=systems+thinker;worldbuilder;simulation+architect" alt="Typing SVG" />
+</p>
+
+<!-- Epigraph: "all things being equal? inequalities provide more operators" -->
+
+$$
+\forall x,y : x = y \implies \text{?} \quad \{ <, >, \leq, \geq, \neq \} \supseteq \{ = \}
+$$
+
+---
+
 # alexanderdaly.github.io
 Github project site
 
