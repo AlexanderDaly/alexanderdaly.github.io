@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../svg/Spy-06.svg">
+    <link rel="preconnect" href="https://rsms.me">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <title>Transition Rules as Measure Constructors - Alexander Daly</title>
+    <meta name="description"
+        content="One equation — π(dΨ) = Z⁻¹ e^(−𝒜(Ψ)) μ₀(dΨ) — organizes Metropolis-Hastings, Langevin dynamics, Riemannian samplers, lattice field theory, and stochastic quantization. With four live samplers you can poke.">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* ---- CRT terminal treatment, scoped to this post ---- */
+        .crt .article-content h2 {
+            font-family: var(--font-mono);
+            font-size: 1.35rem;
+            letter-spacing: 0.5px;
+        }
+
+        .crt .article-content h2::before {
+            content: "▌ ";
+            color: var(--accent-color);
+            opacity: 0.7;
+        }
+
+        .crt .article-meta {
+            font-family: var(--font-mono);
+        }
+
+        /* Read-time + TOC card */
+        .post-toc {
+            max-width: 680px;
+            margin: 0 auto 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: linear-gradient(rgba(255, 46, 68, 0.03), rgba(255, 46, 68, 0.03));
+            padding: 18px 22px;
+            font-size: 0.92rem;
+        }
+
+        .post-toc .toc-head {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--secondary-text);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .post-toc ol {
+            margin: 0;
+            padding-left: 20px;
+            columns: 2;
+            column-gap: 28px;
+        }
+
+        .post-toc li {
+            margin-bottom: 6px;
+            break-inside: avoid;
+        }
+
+        .post-toc a { color: #cfcfcf; }
+        .post-toc a:hover { color: var(--accent-color); }
+
+        @media (max-width: 600px) {
+            .post-toc ol { columns: 1; }
+        }
+
+        /* Key-figure callouts */
+        .figure-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin: 30px 0;
+        }
+
+        .stat {
+            border: 1px solid var(--border-color);
+            border-radius: 9px;
+            padding: 16px 16px 14px;
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .stat .num {
+            font-family: var(--font-mono);
+            font-size: 1.25rem;
+            color: var(--accent-color);
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .stat .lab {
+            font-size: 0.78rem;
+            color: var(--secondary-text);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        /* ---- Demo cards: instrument panels embedded between prose blocks ---- */
+        .demo-card {
+            max-width: 860px;
+            margin: 44px auto 54px;
+            padding: 26px 26px 22px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--panel);
+            box-shadow: inset 0 0 0 1px rgba(255, 46, 68, 0.05);
+        }
+
+        .demo-card .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px var(--glow);
+        }
+
+        .demo-card h3 {
+            font-size: 1.45rem;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            line-height: 1.15;
+            margin-bottom: 10px;
+        }
+
+        .demo-card .demo-blurb {
+            color: var(--secondary-text);
+            font-size: 0.96rem;
+            line-height: 1.6;
+            max-width: 680px;
+            margin-bottom: 18px;
+        }
+
+        .sim-wrap {
+            position: relative;
+            margin: 0;
+            border: 1px solid rgba(255, 46, 68, 0.28);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #05060a;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 24px 60px -28px rgba(255, 46, 68, 0.35);
+        }
+
+        .sim-canvas {
+            display: block;
+            width: 100%;
+            height: 400px;
+        }
+
+        .sim-canvas.tall { height: 470px; }
+
+        .sim-scanlines {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0) 0px,
+                rgba(0, 0, 0, 0) 2px,
+                rgba(0, 0, 0, 0.16) 3px,
+                rgba(0, 0, 0, 0.16) 3px);
+            mix-blend-mode: multiply;
+            opacity: 0.7;
+            animation: crtRoll 8s linear infinite;
+        }
+
+        .sim-vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(120% 120% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+        }
+
+        @keyframes crtRoll {
+            0% { background-position-y: 0; }
+            100% { background-position-y: 6px; }
+        }
+
+        .sim-hud {
+            position: absolute;
+            top: 12px;
+            left: 14px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            line-height: 1.6;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(255, 46, 68, 0.5);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .sim-hud b { color: #fff; font-weight: 600; }
+        .sim-hud .warn { color: #ff8a6a; }
+        .sim-hud .cool { color: #9fefff; }
+
+        .sim-controls {
+            position: absolute;
+            bottom: 12px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .sim-btn {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: var(--text-color);
+            background: rgba(255, 46, 68, 0.08);
+            border: 1px solid rgba(255, 46, 68, 0.35);
+            padding: 7px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+        }
+
+        .sim-btn:hover {
+            background: rgba(255, 46, 68, 0.18);
+            border-color: var(--accent-color);
+        }
+
+        .sim-btn:active { transform: scale(0.96); }
+
+        .sim-btn.sel {
+            color: #9fefff;
+            border-color: rgba(0, 229, 255, 0.55);
+            background: rgba(0, 229, 255, 0.08);
+        }
+
+        .sim-btn.off {
+            color: #ff7a7a;
+            border-color: rgba(255, 90, 90, 0.5);
+            background: rgba(255, 70, 70, 0.08);
+        }
+
+        .sim-spacer { flex: 1 1 auto; }
+
+        .demo-card .sim-cap {
+            font-size: 0.85rem;
+            color: var(--secondary-text);
+            text-align: center;
+            font-style: italic;
+            margin: 14px 0 0;
+        }
+
+        /* Displayed equations */
+        .article-content pre.eq code {
+            color: #f3dde0;
+            text-shadow: 0 0 14px rgba(255, 46, 68, 0.25);
+            font-size: 0.98em;
+        }
+
+        .article-content .footnotes {
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            border-top: 1px solid var(--border-color);
+            margin-top: 40px;
+            padding-top: 18px;
+        }
+
+        .article-content .footnotes ol { padding-left: 20px; }
+        .article-content .footnotes li { margin-bottom: 8px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sim-scanlines { animation: none; }
+        }
+
+        @media (max-width: 768px) {
+            .sim-canvas { height: 340px; }
+            .sim-canvas.tall { height: 420px; }
+            .demo-card { padding: 18px 14px 16px; }
+            .sim-hud { font-size: 0.6rem; }
+        }
+    </style>
+</head>
+
+<body class="crt">
+    <div class="container">
+        <header>
+            <a href="/" class="logo">Alexander Daly</a>
+            <nav>
+                <a href="../projects.html">Projects</a>
+                <a href="../blog.html" class="active">Blog</a>
+                <a href="https://x.com/0xHondo" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+            </nav>
+        </header>
+
+        <main>
+            <article>
+                <div class="article-header">
+                    <div class="article-meta">Mathematical Physics &middot; June 2026 &middot; ~15 min read</div>
+                    <h1 class="article-title">Transition Rules as Measure Constructors</h1>
+                    <p class="subtitle">Reference measures, Langevin dynamics, and stochastic quantization &mdash;
+                        one equation that runs from coin-flip samplers to the Yang-Mills frontier, with four live
+                        models you can poke.</p>
+                </div>
+
+                <nav class="post-toc" aria-label="Table of contents">
+                    <div class="toc-head">
+                        <span>// Contents</span>
+                        <span>Working notes, made visible</span>
+                    </div>
+                    <ol>
+                        <li><a href="#one-equation">The one equation</a></li>
+                        <li><a href="#mh">Metropolis-Hastings</a></li>
+                        <li><a href="#langevin">Euclidean Langevin dynamics</a></li>
+                        <li><a href="#riemannian">The volume correction</a></li>
+                        <li><a href="#fields">Fields and reference measures</a></li>
+                        <li><a href="#stochastic-quantization">Stochastic quantization</a></li>
+                        <li><a href="#gauge">Gauge fields and Haar measure</a></li>
+                        <li><a href="#ladder">The algorithmic ladder</a></li>
+                        <li><a href="#lattice">A lattice you can run</a></li>
+                        <li><a href="#frontier">The four-dimensional frontier</a></li>
+                    </ol>
+                </nav>
+
+                <div class="article-content">
+                    <p>I've been writing up a set of working notes on a single organizing idea, and this post is the
+                        interactive version. The idea is almost embarrassingly simple to state: <strong>a sampler is a
+                        machine for constructing a measure</strong>. Choose a state space. Choose a reference measure
+                        on it. Choose a dimensionless action relative to that reference measure. Then build a
+                        transition rule that preserves the resulting target. That one discipline runs unbroken from
+                        textbook Metropolis-Hastings all the way to stochastic quantization of gauge theory &mdash;
+                        and most of the famous subtleties along the way are what happens when one of those choices is
+                        made sloppily.</p>
+
+                    <p>This post does not claim a new construction of an interacting continuum quantum field theory,
+                        and it doesn't introduce a new algorithm. The contribution is organizational: one framework,
+                        one equation, and &mdash; because this is my blog and not a journal &mdash; four live
+                        simulations so you can watch the measures get built.</p>
+
+                    <h2 id="one-equation">The one equation</h2>
+
+                    <p>The central object is not a bare density but a measure:</p>
+
+                    <pre class="eq"><code>π(dΨ) = Z⁻¹ e^(−𝒜(Ψ)) μ₀(dΨ)</code></pre>
+
+                    <p>Here Ψ is a state &mdash; a particle configuration, a parameter vector, a lattice field, a set
+                        of group-valued links &mdash; <em>μ₀</em> is an explicit <strong>reference measure</strong> on
+                        the state space, and 𝒜 is a dimensionless <strong>action</strong>. For a thermal system,
+                        𝒜&nbsp;=&nbsp;<em>βH</em>. For Euclidean field theory, 𝒜&nbsp;=&nbsp;<em>S<sub>E</sub></em>
+                        in units where ℏ&nbsp;=&nbsp;1.</p>
+
+                    <p>The point that everything else hangs on: <strong>a density is not invariant data until the
+                        reference measure is specified.</strong> In Euclidean parameter space the reference is
+                        Lebesgue measure. In canonical phase space it's Liouville measure. On a Riemannian manifold
+                        it's Riemannian volume. On a lattice scalar field it's a product measure over sites; on a
+                        lattice gauge field, product Haar measure over links; in function-space sampling, often a
+                        Gaussian. These choices are not cosmetic. They determine the actual probability law being
+                        sampled &mdash; and demo 3 below makes that difference something you can see.</p>
+
+                    <p>A <strong>transition rule</strong> is a Markov kernel <em>K</em>(Ψ,&nbsp;dΦ). The measure
+                        <em>π</em> is stationary if <em>πK&nbsp;=&nbsp;π</em>: feed the kernel a state drawn from
+                        <em>π</em> and it hands back a state drawn from <em>π</em>. Convergence <em>to</em> π from an
+                        arbitrary start is a stronger statement and needs extra assumptions (irreducibility,
+                        aperiodicity, suitable recurrence, non-explosion). The framework's job is to make
+                        stationarity itself routine to verify.</p>
+
+                    <h2 id="mh">Metropolis-Hastings as a measure-preserving rule</h2>
+
+                    <p>The universal correction layer. Draw a proposal Φ from a kernel with density
+                        <em>q</em>(Φ&nbsp;|&nbsp;Ψ) <em>with respect to the same reference measure μ₀</em>, and accept
+                        it with probability</p>
+
+                    <pre class="eq"><code>a(Ψ, Φ) = min[ 1, e^(−[𝒜(Φ)−𝒜(Ψ)]) · q(Ψ|Φ) / q(Φ|Ψ) ]</code></pre>
+
+                    <p>If rejected, stay put. The normalizing constant <em>Z</em> cancels from the ratio &mdash; the
+                        practical superpower of the whole method: you never need to know it. The resulting kernel
+                        satisfies detailed balance with respect to π, which implies stationarity (though detailed
+                        balance is sufficient, not necessary &mdash; non-reversible chains can preserve the same
+                        target while carrying equilibrium probability currents, sometimes deliberately, for faster
+                        mixing).</p>
+
+                    <p>One correction worth making loudly: the folklore summary &mdash; "accept downhill moves
+                        automatically, uphill moves with probability <em>e<sup>−Δ𝒜</sup></em>" &mdash; is only true
+                        when the proposal is <em>symmetric</em>. For an asymmetric proposal, a downhill move can be
+                        rejected and an uphill move can be accepted with probability one, if the proposal ratio says
+                        so. Cancellation is something you verify, not something you assume.</p>
+                </div>
+
+                <section class="demo-card" aria-labelledby="demo-mh-title">
+                    <p class="eyebrow">Live model 01 &mdash; Metropolis-Hastings</p>
+                    <h3 id="demo-mh-title">Watching a measure get built</h3>
+                    <p class="demo-blurb">A single walker samples a tilted double-well action
+                        𝒜(x)&nbsp;=&nbsp;2(x²−1)²&nbsp;+&nbsp;0.25x with a symmetric Gaussian proposal. Top: the
+                        action landscape and the walker, with each proposal flashed cyan (accepted) or red
+                        (rejected). Bottom: the histogram of visited states converging onto the exact target density
+                        e^(−𝒜) drawn in white. The walker starts in the <em>shallower</em> well &mdash; watch the
+                        measure pull it across. Try the timid and wild step sizes to see why tuning matters: both
+                        preserve the target, but mixing is another story.</p>
+                    <figure class="sim-wrap">
+                        <canvas id="mh-sim" class="sim-canvas"></canvas>
+                        <div class="sim-hud" id="mh-hud"></div>
+                        <div class="sim-scanlines"></div>
+                        <div class="sim-vignette"></div>
+                        <div class="sim-controls">
+                            <button class="sim-btn" data-sig="0">Step: timid</button>
+                            <button class="sim-btn sel" data-sig="1">Step: tuned</button>
+                            <button class="sim-btn" data-sig="2">Step: wild</button>
+                            <span class="sim-spacer"></span>
+                            <button class="sim-btn" id="mh-fast">Speed: watch</button>
+                            <button class="sim-btn" id="mh-reset">Reset</button>
+                        </div>
+                    </figure>
+                    <p class="sim-cap">The acceptance rule min(1, e^(−Δ𝒜)) needs no normalizing constant. Timid
+                        steps accept nearly everything and explore nothing; wild steps mostly reject. Either way the
+                        stationary measure is the same &mdash; the chain just takes longer to reveal it.</p>
+                </section>
+
+                <div class="article-content">
+                    <h2 id="langevin">Euclidean Langevin dynamics</h2>
+
+                    <p>The continuous-time counterpart in ℝ<sup>d</sup> is the overdamped Langevin diffusion:</p>
+
+                    <pre class="eq"><code>dXₜ = −∇𝒜(Xₜ) dt + √2 dBₜ</code></pre>
+
+                    <p>The drift transports probability downhill in action; the diffusion spreads it. The
+                        Fokker-Planck equation is <em>∂<sub>t</sub>ρ&nbsp;=&nbsp;∇·(ρ∇𝒜&nbsp;+&nbsp;∇ρ)</em>, and the
+                        stationary density with respect to Lebesgue measure is
+                        <em>ρ<sub>∞</sub>&nbsp;=&nbsp;Z⁻¹e<sup>−𝒜</sup></em> &mdash; the verification is a one-line
+                        zero-current calculation: at <em>ρ<sub>∞</sub></em>, the two probability fluxes cancel
+                        exactly. The stationary state is not "everything at the minimum"; it is the distribution
+                        where downhill transport and diffusive spreading balance.</p>
+
+                    <p>That distinction &mdash; <strong>optimization finds minima, Langevin finds measures</strong>
+                        &mdash; is exactly what the noise toggle in the next demo shows. Kill the noise and the
+                        particle cloud collapses into the two minima and freezes. Restore it and the cloud relaxes
+                        back to <em>e<sup>−𝒜</sup></em>, with the deeper well holding predictably more mass.</p>
+                </div>
+
+                <section class="demo-card" aria-labelledby="demo-lg-title">
+                    <p class="eyebrow">Live model 02 &mdash; Langevin diffusion</p>
+                    <h3 id="demo-lg-title">Drift versus noise, fighting to a draw</h3>
+                    <p class="demo-blurb">Six hundred independent particles integrate
+                        dX&nbsp;=&nbsp;−∇𝒜&nbsp;dt&nbsp;+&nbsp;√2&nbsp;dB in a two-dimensional tilted double-well.
+                        The faint red shading is the exact target e^(−𝒜); the HUD compares the measured share of
+                        particles in the deeper left well against the value predicted by integrating the measure.
+                        Respawn the whole cloud in the shallow right well and watch it relax to equilibrium &mdash;
+                        then switch the noise off and watch sampling degenerate into gradient descent.</p>
+                    <figure class="sim-wrap">
+                        <canvas id="lg-sim" class="sim-canvas"></canvas>
+                        <div class="sim-hud" id="lg-hud"></div>
+                        <div class="sim-scanlines"></div>
+                        <div class="sim-vignette"></div>
+                        <div class="sim-controls">
+                            <button class="sim-btn" id="lg-noise">Noise: ON</button>
+                            <button class="sim-btn" id="lg-target">Target: ON</button>
+                            <span class="sim-spacer"></span>
+                            <button class="sim-btn" id="lg-right">Respawn right well</button>
+                            <button class="sim-btn" id="lg-uniform">Respawn uniform</button>
+                        </div>
+                    </figure>
+                    <p class="sim-cap">The stationary cloud is the configuration in which downhill drift and
+                        diffusive spreading cancel as probability fluxes. With noise off, the same drift is just an
+                        optimizer: every particle finds a minimum and dies there.</p>
+                </section>
+
+                <div class="article-content">
+                    <h2 id="riemannian">Riemannian Langevin and the volume correction</h2>
+
+                    <p>Move the state space to a Riemannian manifold (𝒮,&nbsp;g) and the reference-measure principle
+                        stops being pedantry and starts changing answers. Intrinsic manifold Langevin dynamics
+                        &mdash; best defined generator-first, as
+                        <em>Lf&nbsp;=&nbsp;−⟨grad<sub>g</sub>𝒜,&nbsp;grad<sub>g</sub>f⟩<sub>g</sub>&nbsp;+&nbsp;Δ<sub>g</sub>f</em>
+                        with the Laplace-Beltrami operator &mdash; samples <em>e<sup>−𝒜</sup></em> with respect to
+                        <strong>Riemannian volume</strong>, not coordinate volume. In a chart,</p>
+
+                    <pre class="eq"><code>dvol_g(x) = √|g(x)| dx     ⟹     p(x) = Z⁻¹ e^(−𝒜(x)) √|g(x)|</code></pre>
+
+                    <p>Whenever |g| is not constant, those are two different target measures, full stop. The Ito
+                        form of the intrinsic diffusion carries an extra drift term,
+                        |g|<sup>−1/2</sup>∂<sub>j</sub>(√|g|&nbsp;g<sup>ij</sup>) &mdash; equivalently
+                        −g<sup>jk</sup>Γ<sup>i</sup><sub>jk</sub> &mdash; and dropping it (using g⁻¹ as a mere
+                        preconditioner in a Euclidean-style update) generally breaks the stationary measure. If you
+                        actually <em>want</em> the coordinate-density target, you can have it: shift the action by
+                        ½&nbsp;log&nbsp;|g| and sample that intrinsically. The framework doesn't forbid either
+                        target; it forces you to say which one you mean.</p>
+
+                    <p>The cleanest place to <em>see</em> the distinction needs no dynamics at all &mdash; just the
+                        sphere, where the metric factor is sin&nbsp;θ.</p>
+                </div>
+
+                <section class="demo-card" aria-labelledby="demo-sp-title">
+                    <p class="eyebrow">Live model 03 &mdash; Reference measures</p>
+                    <h3 id="demo-sp-title">"Uniform" is not a density. It's a measure.</h3>
+                    <p class="demo-blurb">Both modes below sample with the <em>same constant density</em>, "1" &mdash;
+                        the same 𝒜&nbsp;=&nbsp;0 &mdash; but against two different reference measures on the sphere.
+                        Coordinate measure dθ&nbsp;dφ piles points up at the poles, because equal intervals of θ near
+                        the pole own almost no area. Riemannian volume sin&nbsp;θ&nbsp;dθ&nbsp;dφ spreads them
+                        uniformly over the surface. Same density. Different measure. Different physics.</p>
+                    <figure class="sim-wrap">
+                        <canvas id="sp-sim" class="sim-canvas"></canvas>
+                        <div class="sim-hud" id="sp-hud"></div>
+                        <div class="sim-scanlines"></div>
+                        <div class="sim-vignette"></div>
+                        <div class="sim-controls">
+                            <button class="sim-btn" id="sp-coord">Coordinate: dθ dφ</button>
+                            <button class="sim-btn sel" id="sp-riem">Riemannian: sinθ dθ dφ</button>
+                            <span class="sim-spacer"></span>
+                            <button class="sim-btn" id="sp-clear">Clear</button>
+                        </div>
+                    </figure>
+                    <p class="sim-cap">For a truly uniform surface distribution, 13.4% of points should fall within
+                        30&deg; of a pole. Under the coordinate measure it's 33.3%. The √|g| = sin&nbsp;θ volume
+                        factor is the entire difference &mdash; and the same factor, in higher dimensions, is the
+                        Riemannian Langevin correction term.</p>
+                </section>
+
+                <div class="article-content">
+                    <p>The same discipline governs discretization. An unadjusted Langevin step has a stationary
+                        distribution that's biased by an amount controlled by the step size; the Metropolis-adjusted
+                        version (MALA) restores exactness by treating each step as a proposal &mdash; <em>but only
+                        if</em> the proposal density entering the acceptance ratio is the density of the move
+                        actually being simulated, with all asymmetry, Jacobian, and volume terms included, computed
+                        against one consistent reference measure. Geometric proposals built from the exponential map
+                        are the same story: exact geodesic random walks from isotropic tangent noise can be genuinely
+                        symmetric with respect to Riemannian volume, but non-radial covariance, approximate
+                        retractions, coordinate-expressed densities, boundaries, and cut-locus preimages all break
+                        the symmetry. Adding an accept/reject step does not by itself fix your target.</p>
+
+                    <h2 id="fields">Field configurations and reference measures</h2>
+
+                    <p>Euclidean field theory writes its target as
+                        <em>π(dφ)&nbsp;∝&nbsp;e<sup>−S<sub>E</sub>[φ]</sup>&nbsp;𝒟φ</em>, and the formal symbol 𝒟φ
+                        is exactly where the framework earns its keep: a continuum path-integral measure is not
+                        automatically a well-defined object. It is given meaning through one of a few explicit
+                        constructions:</p>
+
+                    <ul>
+                        <li><strong>Lattice product measure.</strong> On a finite lattice, the field is just a
+                            high-dimensional vector, the reference is ∏<sub>x</sub>&nbsp;dφ<sub>x</sub>, and
+                            Metropolis, MALA, or HMC apply directly. This is an ordinary probability measure with no
+                            philosophical asterisk.</li>
+                        <li><strong>Gaussian reference measure.</strong> In infinite dimensions there is no
+                            translation-invariant Lebesgue measure. One starts instead from a Gaussian free-field
+                            measure μ<sub>G</sub> and defines the interacting theory by a Radon-Nikodym density:
+                            π(dφ)&nbsp;=&nbsp;Z⁻¹e<sup>−V(φ)</sup>μ<sub>G</sub>(dφ). And here's a trap the equation
+                            guards against: if μ<sub>G</sub> already contains the free quadratic part of the action,
+                            writing the full action in the exponential <em>double-counts</em> it. The reference
+                            measure determines what belongs in the action.</li>
+                    </ul>
+
+                    <p>This is also why function-space MCMC works the way it does. Preconditioned Crank-Nicolson
+                        proposals are engineered to preserve the Gaussian reference exactly, so only the relative
+                        density enters the accept/reject step &mdash; which is why pCN survives mesh refinement that
+                        kills naive random-walk proposals. The algorithm respects the reference measure instead of
+                        fighting it.</p>
+
+                    <h2 id="stochastic-quantization">Stochastic quantization is field-space Langevin</h2>
+
+                    <p>Parisi and Wu's stochastic quantization is, in this framework, nothing exotic: it is the
+                        infinite-dimensional row of the same table. Run a fictitious-time Langevin equation whose
+                        invariant measure is intended to be the Euclidean field-theory measure:</p>
+
+                    <pre class="eq"><code>∂τφ = −δS_E/δφ + √2 η</code></pre>
+
+                    <p>The gradient becomes a variational derivative, Brownian motion becomes space-time white noise
+                        η, and "run the sampler to equilibrium" becomes a construction route for the measure itself.
+                        But the formal equation only means something after specifying a regulator, a reference
+                        measure, a state space, and a topology &mdash; and the continuum limit ε&nbsp;→&nbsp;0 is
+                        where renormalization enters.</p>
+
+                    <p>In singular theories the naive drift is not even well-defined. For dynamical Φ⁴ in three
+                        dimensions the field is distribution-valued and φ³ has no classical meaning; the correct
+                        equation is a renormalized limit of cutoff equations with counterterms:</p>
+
+                    <pre class="eq"><code>∂τφ_ε = Δφ_ε − m²φ_ε − λφ_ε³ + C_ε φ_ε + √2 η_ε</code></pre>
+
+                    <p>The structural point: <strong>the invariant measure and the stochastic dynamics must be
+                        renormalized together.</strong> Hairer's regularity structures and the
+                        Gubinelli-Imkeller-Perkowski paracontrolled calculus are the two major frameworks that make
+                        such singular SPDEs meaningful &mdash; and extending them to manifolds and vector bundles
+                        drags in the bundle connection, noise covariance, and curvature-dependent renormalization:
+                        the infinite-dimensional echo of the finite-dimensional volume correction above.</p>
+
+                    <p>Stationarity also has output beyond samples. If <em>L</em> generates the process and π is
+                        invariant, then ∫&nbsp;LF&nbsp;dπ&nbsp;=&nbsp;0 for suitable test functions &mdash; an
+                        integration-by-parts identity that, in field notation, reads</p>
+
+                    <pre class="eq"><code>E_π[ δF/δφ(x) ] = E_π[ F(φ) · δS_E/δφ(x) ]</code></pre>
+
+                    <p>These are the Schwinger-Dyson identities: the field equations in expectation form. The
+                        dynamics samples the measure; the stationarity of the measure <em>is</em> the correlation
+                        structure of the quantum field theory.</p>
+
+                    <h2 id="gauge">Gauge fields and Haar reference measure</h2>
+
+                    <p>Gauge theory makes the reference-measure question unavoidable, because the state space stops
+                        being a vector space. On a lattice, the configuration is a set of group-valued link variables
+                        U<sub>e</sub>&nbsp;∈&nbsp;G on edges, and the natural reference is <strong>product Haar
+                        measure</strong> &mdash; the Wilson target is
+                        π(dU)&nbsp;=&nbsp;Z⁻¹e<sup>−S<sub>W</sub>[U]</sup>∏<sub>e</sub>dU<sub>e</sub>. The base
+                        measure here is not a detail bolted on after the action; it <em>is</em> the geometry of the
+                        sample space, encoding which configurations exist and what "uniform" means on them.</p>
+
+                    <p>In the continuum the state-space problem deepens: fields are connections, observables must
+                        respect gauge symmetry, and the honest state space involves gauge <em>orbits</em>. The recent
+                        rigorous milestones live exactly here &mdash; Chandra, Chevyrev, Hairer, and Shen constructed
+                        the state space and Markov process for the 2D Yang-Mills Langevin dynamic, and built
+                        local-in-time solutions and a canonical Markov process on gauge orbits for 3D
+                        Yang-Mills-Higgs. In gauge theory the problem is not only the action: it is the state space,
+                        the quotient geometry, the reference measure, the observable algebra, and the renormalized
+                        dynamics, all at once.</p>
+
+                    <h2 id="ladder">Algorithms as transition-rule upgrades</h2>
+
+                    <p>Read through this lens, the standard algorithm zoo is one ladder, each rung a smarter proposal
+                        wrapped in the same correction layer:</p>
+
+                    <div class="figure-grid">
+                        <div class="stat">
+                            <div class="num">MH</div>
+                            <div class="lab">The universal correction layer. Any proposal works if its density is
+                                known relative to the correct reference measure.</div>
+                        </div>
+                        <div class="stat">
+                            <div class="num">MALA</div>
+                            <div class="lab">Discretized Langevin step as proposal. Asymmetric because of the drift
+                                &mdash; the proposal-density ratio is mandatory.</div>
+                        </div>
+                        <div class="stat">
+                            <div class="num">pCN</div>
+                            <div class="lab">Preserves a Gaussian reference exactly; only the relative density enters
+                                the acceptance. Stable under mesh refinement.</div>
+                        </div>
+                        <div class="stat">
+                            <div class="num">HMC</div>
+                            <div class="lab">Extends the state space with momenta and Liouville measure; geometry
+                                proposes long moves, Metropolis keeps the target exact.</div>
+                        </div>
+                    </div>
+
+                    <p>HMC deserves its own sentence: it was introduced <em>in lattice field theory</em> as hybrid
+                        Monte Carlo, a molecular-dynamics-guided sampler &mdash; the symplectic expression of the
+                        transition-rule philosophy. Use geometry to travel far; use Metropolis-Hastings to preserve
+                        the exact measure.</p>
+
+                    <h2 id="lattice">A lattice you can run</h2>
+
+                    <p>The notes end with a companion numerical program, and it would be against the spirit of this
+                        blog not to just run it. Take two-dimensional scalar φ⁴ theory on a periodic lattice:</p>
+
+                    <pre class="eq"><code>S[φ] = Σₓ [ ½ Σ_μ (φ_{x+μ̂} − φₓ)² + (m₀²/2) φₓ² + λ φₓ⁴ ]</code></pre>
+
+                    <p>with target π(dφ)&nbsp;∝&nbsp;e<sup>−S[φ]</sup>∏<sub>x</sub>dφ<sub>x</sub> &mdash; an ordinary,
+                        finite-dimensional measure. The transition rule below is the simplest one on the ladder: a
+                        local Metropolis update, proposing a small change at one site and accepting with probability
+                        min(1,&nbsp;e<sup>−ΔS</sup>). The observables are magnetization
+                        M&nbsp;=&nbsp;|Λ|⁻¹Σφ<sub>x</sub> and its fluctuations; near the critical coupling the
+                        correlation length blows up, the mass gap closes, and you can watch order parameter domains
+                        the size of the whole lattice breathe in and out. This simulation is not the continuum
+                        theorem &mdash; but it is a fully controlled, finite-dimensional instance of every idea
+                        above.</p>
+                </div>
+
+                <section class="demo-card" aria-labelledby="demo-lt-title">
+                    <p class="eyebrow">Live model 04 &mdash; Lattice φ⁴, the companion program</p>
+                    <h3 id="demo-lt-title">A quantum field measure under local Metropolis</h3>
+                    <p class="demo-blurb">A 96&times;96 periodic lattice, λ&nbsp;=&nbsp;0.5, running thousands of
+                        local Metropolis updates per frame. Amber is φ&nbsp;&gt;&nbsp;0, cyan is φ&nbsp;&lt;&nbsp;0.
+                        Step m₀² across the phase transition: deep in the symmetric phase the field is short-range
+                        noise; near the critical point (m₀²&nbsp;≈&nbsp;−1.27 for this λ) huge correlated domains
+                        form and die; in the broken phase one sign wins and the magnetization trace at the bottom
+                        locks on. Switching m₀² mid-run quenches the system live.</p>
+                    <figure class="sim-wrap">
+                        <canvas id="lt-sim" class="sim-canvas tall"></canvas>
+                        <div class="sim-hud" id="lt-hud"></div>
+                        <div class="sim-scanlines"></div>
+                        <div class="sim-vignette"></div>
+                        <div class="sim-controls">
+                            <button class="sim-btn sel" data-m2="0">Symmetric m&#178;=+0.8</button>
+                            <button class="sim-btn" data-m2="1">Critical m&#178;=&minus;1.27</button>
+                            <button class="sim-btn" data-m2="2">Broken m&#178;=&minus;2.6</button>
+                            <span class="sim-spacer"></span>
+                            <button class="sim-btn" id="lt-hot">Reheat</button>
+                        </div>
+                    </figure>
+                    <p class="sim-cap">Reference measure: ∏ₓ dφₓ. Action: lattice φ⁴. Transition rule: local
+                        Metropolis. Invariant measure: the lattice field theory. Away from criticality correlations
+                        decay like e^(−mr) &mdash; estimating that decay is direct numerical contact with the idea of
+                        a mass gap.</p>
+                </section>
+
+                <div class="article-content">
+                    <h2 id="frontier">The four-dimensional frontier</h2>
+
+                    <p>The framework is not a shortcut around constructive field theory; it's a way to state exactly
+                        what must be constructed. For standard positive-coupling scalar φ⁴ in four dimensions, the
+                        news is sobering: Aizenman and Duminil-Copin proved marginal triviality of the scaling limits
+                        of critical 4D Ising-type and lattice-regularized φ⁴ models &mdash; the usual route does not
+                        produce the interacting continuum theory one might hope for. Four-dimensional Yang-Mills is
+                        different: asymptotic freedom means the ultraviolet problem is not the same triviality
+                        mechanism, and a complete construction with a positive mass gap is, of course, a Clay
+                        Millennium problem.</p>
+
+                    <p>So read the ladder honestly: it's a route into the terrain, not a proof of the summit. What
+                        it identifies is the full list of objects that have to be controlled &mdash; reference
+                        measure, action, transition rule, invariant measure, continuum limit, renormalization, gauge
+                        quotient, mass-gap observables. The guiding principle the whole way up:</p>
+
+                    <blockquote>Choose the reference measure. Choose the action. Construct dynamics that preserves
+                        the resulting measure.</blockquote>
+
+                    <p>This principle does not solve the hard continuum problems by itself. It tells you exactly
+                        where the hard problems live. And as the four panels above hopefully show, every rung of it
+                        below the frontier is something you can actually watch run.</p>
+
+                    <div class="footnotes">
+                        <ol>
+                            <li>G. Parisi and Y.-S. Wu, "Perturbation theory without gauge fixing," <em>Scientia
+                                Sinica</em> 24:483&ndash;496, 1981.</li>
+                            <li>M. Hairer, "A theory of regularity structures," <em>Inventiones Mathematicae</em>
+                                198:269&ndash;504, 2014.</li>
+                            <li>M. Gubinelli, P. Imkeller, N. Perkowski, "Paracontrolled distributions and singular
+                                PDEs," <em>Forum of Mathematics, Pi</em> 3:e6, 2015.</li>
+                            <li>A. Chandra, I. Chevyrev, M. Hairer, H. Shen, "Langevin dynamic for the 2D Yang-Mills
+                                measure," <em>Publ. Math. IHES</em> 136:1&ndash;147, 2022; and "Stochastic
+                                quantisation of Yang-Mills-Higgs in 3D," arXiv:2201.03487, 2022.</li>
+                            <li>S. L. Cotter, G. O. Roberts, A. M. Stuart, D. White, "MCMC methods for functions:
+                                modifying old algorithms to make them faster," <em>Statistical Science</em>
+                                28(3):424&ndash;446, 2013.</li>
+                            <li>S. Duane, A. D. Kennedy, B. J. Pendleton, D. Roweth, "Hybrid Monte Carlo,"
+                                <em>Physics Letters B</em> 195(2):216&ndash;222, 1987.</li>
+                            <li>M. Aizenman and H. Duminil-Copin, "Marginal triviality of the scaling limits of
+                                critical 4D Ising and φ⁴₄ models," <em>Annals of Mathematics</em> 194(1):163&ndash;235,
+                                2021; corrigendum, 199(1):479, 2024.</li>
+                            <li>M. Hairer and H. Singh, "Regularity structures on manifolds and vector bundles,"
+                                arXiv:2308.05049, 2023.</li>
+                            <li>A. Jaffe and E. Witten, "Quantum Yang-Mills theory," Clay Mathematics Institute
+                                Millennium Problem statement, 2000.</li>
+                            <li>K. G. Wilson, "Confinement of quarks," <em>Physical Review D</em> 10:2445&ndash;2459,
+                                1974.</li>
+                            <li>M. Girolami and B. Calderhead, "Riemann manifold Langevin and Hamiltonian Monte Carlo
+                                methods," <em>JRSS B</em> 73(2):123&ndash;214, 2011.</li>
+                        </ol>
+                    </div>
+
+                    <hr>
+                    <p><a href="../blog.html">&larr; Back to all posts</a></p>
+                </div>
+            </article>
+        </main>
+
+        <footer>
+            <div class="copyright">&copy; 2026 Alexander Daly</div>
+            <div class="social-links">
+                <a href="https://github.com/alexanderdaly" target="_blank">GitHub</a>
+                <a href="https://x.com/0xHondo" target="_blank">X (Twitter)</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+    /* ============================================================
+       Shared helpers
+       ============================================================ */
+    function simSetup(cv) {
+        const ctx = cv.getContext('2d');
+        const st = { W: 0, H: 0, dpr: 1, running: true };
+        function resize() {
+            st.dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const r = cv.getBoundingClientRect();
+            st.W = r.width || 640; st.H = r.height || 400;
+            cv.width = Math.round(st.W * st.dpr); cv.height = Math.round(st.H * st.dpr);
+            ctx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
+        }
+        resize();
+        if (window.ResizeObserver) { new ResizeObserver(resize).observe(cv); }
+        else { window.addEventListener('resize', resize); }
+        if (window.IntersectionObserver) {
+            new IntersectionObserver(es => es.forEach(en => st.running = en.isIntersecting), { threshold: 0.05 }).observe(cv);
+        }
+        return { ctx, st };
+    }
+    function gauss() {
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+    const TAU = Math.PI * 2;
+
+    /* ============================================================
+       Demo 1 — Metropolis-Hastings on a tilted double well
+       ============================================================ */
+    (function () {
+        const cv = document.getElementById('mh-sim'); if (!cv) return;
+        const { ctx, st } = simSetup(cv);
+        const hud = document.getElementById('mh-hud');
+
+        const XMIN = -1.95, XMAX = 1.95, ACAP = 7.5;
+        const A = x => { const u = x * x - 1; return 2.0 * u * u + 0.25 * x; };
+
+        // exact target density on the plot window, normalized so it integrates to 1
+        const NT = 240, tgt = new Float64Array(NT);
+        let tgtZ = 0, tgtMax = 0;
+        const dxT = (XMAX - XMIN) / (NT - 1);
+        for (let i = 0; i < NT; i++) {
+            const x = XMIN + dxT * i;
+            tgt[i] = Math.exp(-A(x));
+            tgtZ += tgt[i] * dxT;
+        }
+        for (let i = 0; i < NT; i++) {
+            tgt[i] /= tgtZ; // true probability density
+            if (tgt[i] > tgtMax) tgtMax = tgt[i];
+        }
+
+        const NB = 72;
+        let bins, nSamp, accN, totN, x, sigma, fast, flash, crossings, lastSide;
+        const SIGMAS = [0.04, 0.7, 5.0], SIGLAB = ['0.04', '0.70', '5.00'];
+        let sigIdx = 1;
+
+        function reset() {
+            bins = new Float64Array(NB); nSamp = 0; accN = 0; totN = 0;
+            x = 1.0; // start in the shallower (right) well
+            flash = null; crossings = 0; lastSide = 1;
+        }
+        reset();
+        sigma = SIGMAS[sigIdx]; fast = false;
+
+        document.querySelectorAll('[data-sig]').forEach(b => {
+            b.addEventListener('click', () => {
+                sigIdx = +b.dataset.sig; sigma = SIGMAS[sigIdx];
+                document.querySelectorAll('[data-sig]').forEach(o => o.classList.toggle('sel', o === b));
+            });
+        });
+        const fastBtn = document.getElementById('mh-fast');
+        fastBtn.addEventListener('click', () => {
+            fast = !fast;
+            fastBtn.textContent = 'Speed: ' + (fast ? 'fast' : 'watch');
+            fastBtn.classList.toggle('sel', fast);
+        });
+        document.getElementById('mh-reset').addEventListener('click', reset);
+
+        function record(v) {
+            if (v >= XMIN && v <= XMAX) {
+                bins[Math.min(NB - 1, Math.floor((v - XMIN) / (XMAX - XMIN) * NB))]++;
+            }
+            nSamp++;
+            const side = v < 0 ? -1 : 1;
+            if (side !== lastSide) { crossings++; lastSide = side; }
+        }
+
+        function mcStep(animate) {
+            const prop = x + sigma * gauss();
+            const dA = A(prop) - A(x);
+            const ok = dA <= 0 || Math.random() < Math.exp(-dA);
+            totN++;
+            if (animate) flash = { from: x, to: prop, ok, t: 1 };
+            if (ok) { x = prop; accN++; }
+            record(x);
+        }
+
+        let frameN = 0, last = performance.now();
+        function frame(now) {
+            const dt = Math.min((now - last) / 1000, 0.05); last = now;
+            requestAnimationFrame(frame);
+            if (!st.running) return;
+            frameN++;
+
+            if (fast) { for (let k = 0; k < 400; k++) mcStep(false); }
+            else if (frameN % 4 === 0) { mcStep(true); }
+            if (flash) { flash.t -= dt * 2.2; if (flash.t <= 0) flash = null; }
+
+            const W = st.W, H = st.H;
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, W, H);
+
+            const padL = 24, padR = 18;
+            const px = v => padL + (v - XMIN) / (XMAX - XMIN) * (W - padL - padR);
+            const topY0 = 40, topY1 = H * 0.46;
+            const botY0 = H * 0.56, botY1 = H - 48;
+            const yOfA = a => topY1 - Math.min(a, ACAP) / ACAP * (topY1 - topY0);
+
+            // --- action landscape ---
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = 'rgba(255,46,68,0.8)'; ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            for (let i = 0; i <= 200; i++) {
+                const vx = XMIN + (XMAX - XMIN) * i / 200;
+                const sy = yOfA(A(vx));
+                if (i === 0) ctx.moveTo(px(vx), sy); else ctx.lineTo(px(vx), sy);
+            }
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,111,134,0.55)';
+            ctx.font = '10px ui-monospace, Menlo, monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText('action  A(x) = 2(x²−1)² + 0.25x', W - padR, topY0 - 8);
+
+            // proposal flash
+            if (flash) {
+                const col = flash.ok ? '120,240,255' : '255,90,90';
+                const a = Math.max(0, flash.t);
+                ctx.strokeStyle = 'rgba(' + col + ',' + (0.6 * a).toFixed(3) + ')';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(px(flash.from), yOfA(A(flash.from)));
+                ctx.lineTo(px(flash.to), yOfA(A(flash.to)));
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(' + col + ',' + (0.9 * a).toFixed(3) + ')';
+                ctx.beginPath(); ctx.arc(px(flash.to), yOfA(A(flash.to)), 4, 0, TAU); ctx.fill();
+            }
+
+            // walker
+            const wx = px(Math.max(XMIN, Math.min(XMAX, x))), wy = yOfA(A(x));
+            const gl = ctx.createRadialGradient(wx, wy, 0, wx, wy, 10);
+            gl.addColorStop(0, 'rgba(160,255,255,0.95)');
+            gl.addColorStop(1, 'rgba(0,229,255,0)');
+            ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(wx, wy, 10, 0, TAU); ctx.fill();
+            ctx.fillStyle = '#eaffff'; ctx.beginPath(); ctx.arc(wx, wy, 2.2, 0, TAU); ctx.fill();
+
+            // --- histogram vs exact target ---
+            // both drawn as probability densities, scaled by the target's peak
+            const binW = (XMAX - XMIN) / NB;
+            const scale = nSamp > 0 ? 1 / (nSamp * binW) : 0; // bin count -> empirical density
+            const regH = botY1 - botY0;
+            ctx.fillStyle = 'rgba(0,229,255,0.34)';
+            for (let i = 0; i < NB; i++) {
+                const hpx = Math.min(1.12, (bins[i] * scale) / tgtMax) * regH;
+                const bx = px(XMIN + i * binW);
+                ctx.fillRect(bx, botY1 - hpx, (W - padL - padR) / NB - 1, hpx);
+            }
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.3;
+            ctx.beginPath();
+            for (let i = 0; i < NT; i++) {
+                const vx = XMIN + dxT * i;
+                const sy = botY1 - tgt[i] / tgtMax * regH;
+                if (i === 0) ctx.moveTo(px(vx), sy); else ctx.lineTo(px(vx), sy);
+            }
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,111,134,0.55)';
+            ctx.fillText('samples (cyan)  vs  exact target e^(−A) (white)', W - padR, botY0 - 6);
+            ctx.textAlign = 'left';
+            ctx.strokeStyle = 'rgba(255,46,68,0.25)';
+            ctx.beginPath(); ctx.moveTo(padL, botY1 + 0.5); ctx.lineTo(W - padR, botY1 + 0.5); ctx.stroke();
+
+            if (hud) {
+                const acc = totN ? Math.round(accN / totN * 100) : 0;
+                hud.innerHTML =
+                    '<div>METROPOLIS-HASTINGS</div>' +
+                    '<div>σ proposal: <b>' + SIGLAB[sigIdx] + '</b></div>' +
+                    '<div>acceptance: <b' + (acc > 95 || acc < 15 ? ' class="warn"' : '') + '>' + acc + '%</b></div>' +
+                    '<div>samples: <b>' + nSamp + '</b></div>' +
+                    '<div>well crossings: <b>' + crossings + '</b></div>';
+            }
+        }
+        requestAnimationFrame(frame);
+    })();
+
+    /* ============================================================
+       Demo 2 — Euclidean Langevin diffusion in a 2D tilted double well
+       ============================================================ */
+    (function () {
+        const cv = document.getElementById('lg-sim'); if (!cv) return;
+        const { ctx, st } = simSetup(cv);
+        const hud = document.getElementById('lg-hud');
+
+        const A = (x, y) => { const u = x * x - 1; return 1.5 * u * u + 0.4 * x + 1.8 * y * y; };
+        const gx = (x, y) => 6 * x * (x * x - 1) + 0.4;
+        const gy = (x, y) => 3.6 * y;
+        const XB = 2.2, YB = 1.3;
+
+        // predicted mass share of the left half-plane, by quadrature
+        let predLeft = 0;
+        (function () {
+            let l = 0, t = 0;
+            for (let i = 0; i < 220; i++) for (let j = 0; j < 130; j++) {
+                const x = -XB + 2 * XB * (i + 0.5) / 220, y = -YB + 2 * YB * (j + 0.5) / 130;
+                const w = Math.exp(-A(x, y));
+                t += w; if (x < 0) l += w;
+            }
+            predLeft = l / t;
+        })();
+
+        const N = 600, P = new Float32Array(N * 2);
+        let noise = true, showTarget = true;
+        function spawnRight() { for (let i = 0; i < N; i++) { P[i * 2] = 1.0 + gauss() * 0.08; P[i * 2 + 1] = gauss() * 0.08; } }
+        function spawnUniform() { for (let i = 0; i < N; i++) { P[i * 2] = (Math.random() * 2 - 1) * 1.8; P[i * 2 + 1] = (Math.random() * 2 - 1) * 1.1; } }
+        spawnRight();
+
+        // offscreen target shading e^(-A), tinted in the site's red
+        const bg = document.createElement('canvas'); bg.width = 176; bg.height = 104;
+        (function () {
+            const bctx = bg.getContext('2d');
+            const img = bctx.createImageData(bg.width, bg.height);
+            for (let j = 0; j < bg.height; j++) for (let i = 0; i < bg.width; i++) {
+                const x = -XB + 2 * XB * i / (bg.width - 1);
+                const y = -YB + 2 * YB * j / (bg.height - 1);
+                const w = Math.exp(-A(x, y));
+                const o = (j * bg.width + i) * 4;
+                img.data[o] = 255; img.data[o + 1] = 46; img.data[o + 2] = 68;
+                img.data[o + 3] = Math.round(150 * Math.min(1, w));
+            }
+            bctx.putImageData(img, 0, 0);
+        })();
+
+        const noiseBtn = document.getElementById('lg-noise');
+        noiseBtn.addEventListener('click', () => {
+            noise = !noise;
+            noiseBtn.textContent = 'Noise: ' + (noise ? 'ON' : 'OFF');
+            noiseBtn.classList.toggle('off', !noise);
+        });
+        const tgtBtn = document.getElementById('lg-target');
+        tgtBtn.addEventListener('click', () => {
+            showTarget = !showTarget;
+            tgtBtn.textContent = 'Target: ' + (showTarget ? 'ON' : 'OFF');
+            tgtBtn.classList.toggle('off', !showTarget);
+        });
+        document.getElementById('lg-right').addEventListener('click', spawnRight);
+        document.getElementById('lg-uniform').addEventListener('click', spawnUniform);
+
+        const h = 0.004, SUB = 3;
+        let last = performance.now();
+        function frame(now) {
+            last = now;
+            requestAnimationFrame(frame);
+            if (!st.running) return;
+            const W = st.W, H = st.H;
+            const scale = Math.min(W / 4.8, H / 2.85), cx = W / 2, cy = H / 2 - 8;
+
+            for (let s = 0; s < SUB; s++) {
+                const amp = noise ? Math.sqrt(2 * h) : 0;
+                for (let i = 0; i < N; i++) {
+                    let x = P[i * 2], y = P[i * 2 + 1];
+                    x += -gx(x, y) * h + amp * gauss();
+                    y += -gy(x, y) * h + amp * gauss();
+                    if (x > XB) x = 2 * XB - x; else if (x < -XB) x = -2 * XB - x;
+                    if (y > YB) y = 2 * YB - y; else if (y < -YB) y = -2 * YB - y;
+                    P[i * 2] = x; P[i * 2 + 1] = y;
+                }
+            }
+
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(5,6,10,0.28)'; ctx.fillRect(0, 0, W, H);
+
+            if (showTarget) {
+                ctx.globalAlpha = 0.10;
+                ctx.imageSmoothingEnabled = true;
+                ctx.drawImage(bg, cx - XB * scale, cy - YB * scale, 2 * XB * scale, 2 * YB * scale);
+                ctx.globalAlpha = 1;
+            }
+
+            ctx.globalCompositeOperation = 'lighter';
+            let leftN = 0;
+            ctx.fillStyle = 'rgba(120,240,255,0.7)';
+            for (let i = 0; i < N; i++) {
+                const x = P[i * 2], y = P[i * 2 + 1];
+                if (x < 0) leftN++;
+                ctx.fillRect(cx + x * scale - 1, cy + y * scale - 1, 2, 2);
+            }
+
+            if (hud) {
+                hud.innerHTML =
+                    '<div>LANGEVIN: dX = −∇A dt + √2 dB</div>' +
+                    '<div>noise: <b' + (noise ? '' : ' class="warn"') + '>' + (noise ? 'ON' : 'OFF — gradient descent') + '</b></div>' +
+                    '<div>deep-well mass: <b class="cool">' + Math.round(leftN / N * 100) + '%</b> measured</div>' +
+                    '<div>predicted by ∫ e^(−A): <b>' + Math.round(predLeft * 100) + '%</b></div>' +
+                    '<div>particles: <b>' + N + '</b></div>';
+            }
+        }
+        requestAnimationFrame(frame);
+    })();
+
+    /* ============================================================
+       Demo 3 — Reference measures on the sphere
+       ============================================================ */
+    (function () {
+        const cv = document.getElementById('sp-sim'); if (!cv) return;
+        const { ctx, st } = simSetup(cv);
+        const hud = document.getElementById('sp-hud');
+
+        let riem = true; // start with the honest measure
+        const pts = []; // {x,y,z, riem}
+        const CAP = 2600;
+        let clock = 0;
+
+        const coordBtn = document.getElementById('sp-coord');
+        const riemBtn = document.getElementById('sp-riem');
+        function setMode(r) {
+            riem = r;
+            coordBtn.classList.toggle('sel', !r);
+            riemBtn.classList.toggle('sel', r);
+        }
+        coordBtn.addEventListener('click', () => setMode(false));
+        riemBtn.addEventListener('click', () => setMode(true));
+        document.getElementById('sp-clear').addEventListener('click', () => { pts.length = 0; });
+
+        function sample() {
+            const ph = Math.random() * TAU;
+            let ct; // cos(theta), with theta measured from the +y pole
+            if (riem) ct = Math.random() * 2 - 1;          // uniform area: cos θ ~ U(-1,1)
+            else ct = Math.cos(Math.random() * Math.PI);   // θ ~ U(0,π): coordinate measure
+            const sn = Math.sqrt(Math.max(0, 1 - ct * ct));
+            pts.push({ x: sn * Math.cos(ph), y: ct, z: sn * Math.sin(ph), riem });
+            if (pts.length > CAP) pts.shift();
+        }
+
+        function project(x, y, z, cx, cy, R) {
+            const ay = clock * 0.25, ax = 0.48;
+            let x1 = x * Math.cos(ay) + z * Math.sin(ay);
+            let z1 = -x * Math.sin(ay) + z * Math.cos(ay);
+            const y2 = y * Math.cos(ax) - z1 * Math.sin(ax);
+            const z2 = y * Math.sin(ax) + z1 * Math.cos(ax);
+            return { sx: cx + x1 * R, sy: cy - y2 * R, z: z2 };
+        }
+
+        let last = performance.now();
+        function frame(now) {
+            const dt = Math.min((now - last) / 1000, 0.05); last = now;
+            requestAnimationFrame(frame);
+            if (!st.running) return;
+            clock += dt;
+            for (let k = 0; k < 7; k++) sample();
+
+            const W = st.W, H = st.H;
+            const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.36;
+
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, W, H);
+            ctx.globalCompositeOperation = 'lighter';
+
+            // wireframe: latitude circles + meridians
+            ctx.lineWidth = 1;
+            for (let li = 1; li <= 5; li++) {
+                const th = li * Math.PI / 6, ct = Math.cos(th), sn = Math.sin(th);
+                ctx.beginPath();
+                let started = false;
+                for (let i = 0; i <= 64; i++) {
+                    const ph = i / 64 * TAU;
+                    const p = project(sn * Math.cos(ph), ct, sn * Math.sin(ph), cx, cy, R);
+                    if (!started) { ctx.moveTo(p.sx, p.sy); started = true; } else ctx.lineTo(p.sx, p.sy);
+                }
+                ctx.strokeStyle = 'rgba(255,46,68,0.12)'; ctx.stroke();
+            }
+            for (let mi = 0; mi < 6; mi++) {
+                const ph = mi * Math.PI / 6;
+                ctx.beginPath();
+                let started = false;
+                for (let i = 0; i <= 64; i++) {
+                    const th = i / 64 * TAU;
+                    const sn = Math.sin(th), ct = Math.cos(th);
+                    const p = project(sn * Math.cos(ph), ct, sn * Math.sin(ph), cx, cy, R);
+                    if (!started) { ctx.moveTo(p.sx, p.sy); started = true; } else ctx.lineTo(p.sx, p.sy);
+                }
+                ctx.strokeStyle = 'rgba(255,46,68,0.10)'; ctx.stroke();
+            }
+
+            // pole markers
+            for (const s of [1, -1]) {
+                const p = project(0, s, 0, cx, cy, R);
+                ctx.fillStyle = 'rgba(255,138,43,0.8)';
+                ctx.beginPath(); ctx.arc(p.sx, p.sy, 2.5, 0, TAU); ctx.fill();
+            }
+
+            // points, far hemisphere dimmer
+            let polar = 0;
+            for (const q of pts) {
+                if (Math.abs(q.y) > 0.866) polar++;
+                const p = project(q.x, q.y, q.z, cx, cy, R);
+                const front = (p.z + 1) / 2;
+                const a = 0.18 + 0.6 * front;
+                ctx.fillStyle = q.riem
+                    ? 'rgba(120,240,255,' + a.toFixed(3) + ')'
+                    : 'rgba(255,180,96,' + a.toFixed(3) + ')';
+                const r = 1.1 + front * 0.9;
+                ctx.fillRect(p.sx - r / 2, p.sy - r / 2, r, r);
+            }
+
+            if (hud) {
+                const pf = pts.length ? Math.round(polar / pts.length * 1000) / 10 : 0;
+                hud.innerHTML =
+                    '<div>DENSITY = 1. MEASURE = <b>' + (riem ? 'sinθ dθ dφ' : 'dθ dφ') + '</b></div>' +
+                    '<div>mode: <b class="' + (riem ? 'cool' : 'warn') + '">' + (riem ? 'Riemannian volume' : 'coordinate volume') + '</b></div>' +
+                    '<div>points: <b>' + pts.length + '</b></div>' +
+                    '<div>within 30° of a pole: <b>' + pf + '%</b></div>' +
+                    '<div style="opacity:.6">uniform area → 13.4% &middot; dθdφ → 33.3%</div>';
+            }
+        }
+        requestAnimationFrame(frame);
+    })();
+
+    /* ============================================================
+       Demo 4 — 2D lattice φ⁴ under local Metropolis
+       ============================================================ */
+    (function () {
+        const cv = document.getElementById('lt-sim'); if (!cv) return;
+        const { ctx, st } = simSetup(cv);
+        const hud = document.getElementById('lt-hud');
+
+        const L = 96, NSITE = L * L, LAM = 0.5;
+        const M2S = [0.8, -1.27, -2.6];
+        const M2LAB = ['+0.80', '−1.27', '−2.60'];
+        const PHASE = ['symmetric', 'near-critical', 'broken'];
+        let m2i = 0, m2 = M2S[0];
+        const phi = new Float32Array(NSITE);
+        let sweeps = 0, accW = 0, totW = 0;
+        const mTrace = [];
+
+        function reheat() {
+            for (let i = 0; i < NSITE; i++) phi[i] = Math.random() * 2 - 1;
+            sweeps = 0; mTrace.length = 0;
+        }
+        reheat();
+
+        document.querySelectorAll('[data-m2]').forEach(b => {
+            b.addEventListener('click', () => {
+                m2i = +b.dataset.m2; m2 = M2S[m2i];
+                document.querySelectorAll('[data-m2]').forEach(o => o.classList.toggle('sel', o === b));
+            });
+        });
+        document.getElementById('lt-hot').addEventListener('click', reheat);
+
+        // field heatmap rendered at lattice resolution then scaled up
+        const fc = document.createElement('canvas'); fc.width = L; fc.height = L;
+        const fctx = fc.getContext('2d');
+        const img = fctx.createImageData(L, L);
+
+        function sweep(n) {
+            const STEP = 1.5;
+            let acc = 0;
+            const tot = n * NSITE;
+            for (let k = 0; k < tot; k++) {
+                const i = (Math.random() * NSITE) | 0;
+                const r = (i / L) | 0, c = i % L;
+                const up = ((r + L - 1) % L) * L + c, dn = ((r + 1) % L) * L + c;
+                const lf = r * L + (c + L - 1) % L, rt = r * L + (c + 1) % L;
+                const s = phi[up] + phi[dn] + phi[lf] + phi[rt];
+                const x = phi[i], y = x + (Math.random() * 2 - 1) * STEP;
+                const x2 = x * x, y2 = y * y;
+                const dS = 2 * (y2 - x2) - (y - x) * s
+                    + 0.5 * m2 * (y2 - x2) + LAM * (y2 * y2 - x2 * x2);
+                if (dS <= 0 || Math.random() < Math.exp(-dS)) { phi[i] = y; acc++; }
+            }
+            accW = acc; totW = tot; sweeps += n;
+        }
+
+        let last = performance.now();
+        function frame(now) {
+            last = now;
+            requestAnimationFrame(frame);
+            if (!st.running) return;
+            sweep(3);
+
+            // magnetization
+            let M = 0;
+            for (let i = 0; i < NSITE; i++) M += phi[i];
+            M /= NSITE;
+            mTrace.push(M); if (mTrace.length > 360) mTrace.shift();
+
+            // paint field
+            const d = img.data;
+            for (let i = 0; i < NSITE; i++) {
+                let t = phi[i] / 1.35;
+                if (t > 1) t = 1; else if (t < -1) t = -1;
+                const o = i * 4;
+                if (t < 0) { const a = -t; d[o] = 8; d[o + 1] = 40 + 180 * a; d[o + 2] = 60 + 195 * a; }
+                else { d[o] = 60 + 195 * t; d[o + 1] = 30 + 110 * t; d[o + 2] = 12; }
+                d[o + 3] = 255;
+            }
+            fctx.putImageData(img, 0, 0);
+
+            const W = st.W, H = st.H;
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, W, H);
+
+            const traceH = 50;
+            const availH = H - traceH - 82; // room left for trace + controls
+            const side = Math.min(W - 28, availH);
+            const fx = (W - side) / 2, fy = 12 + (availH - side) / 2;
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(fc, fx, fy, side, side);
+            ctx.strokeStyle = 'rgba(255,46,68,0.3)'; ctx.lineWidth = 1;
+            ctx.strokeRect(fx - 0.5, fy - 0.5, side + 1, side + 1);
+            // keep the HUD legible when the field sits under it
+            if (fx < 245) {
+                const dim = ctx.createLinearGradient(0, 0, 0, 116);
+                dim.addColorStop(0, 'rgba(5,6,10,0.72)');
+                dim.addColorStop(1, 'rgba(5,6,10,0)');
+                ctx.fillStyle = dim; ctx.fillRect(0, 0, 250, 116);
+            }
+
+            // magnetization trace
+            const ty0 = H - traceH - 42, ty1 = H - 42;
+            const tMid = (ty0 + ty1) / 2, tAmp = (ty1 - ty0) / 2 / 1.4;
+            ctx.strokeStyle = 'rgba(255,46,68,0.25)';
+            ctx.beginPath(); ctx.moveTo(fx, tMid + 0.5); ctx.lineTo(fx + side, tMid + 0.5); ctx.stroke();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = 'rgba(120,240,255,0.85)'; ctx.lineWidth = 1.3;
+            ctx.beginPath();
+            for (let i = 0; i < mTrace.length; i++) {
+                const sx = fx + i / 359 * side;
+                const sy = tMid - Math.max(-1.4, Math.min(1.4, mTrace[i])) * tAmp;
+                if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+            }
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,111,134,0.55)';
+            ctx.font = '10px ui-monospace, Menlo, monospace';
+            ctx.fillText('magnetization  M = Σφ/|Λ|', fx, ty0 - 4);
+
+            if (hud) {
+                const acc = totW ? Math.round(accW / totW * 100) : 0;
+                hud.innerHTML =
+                    '<div>LATTICE φ⁴ — 96×96 · λ=0.5</div>' +
+                    '<div>m₀²: <b>' + M2LAB[m2i] + '</b> (' + PHASE[m2i] + ')</div>' +
+                    '<div>sweeps: <b>' + sweeps + '</b></div>' +
+                    '<div>acceptance: <b>' + acc + '%</b></div>' +
+                    '<div>M: <b class="cool">' + (M >= 0 ? '+' : '') + M.toFixed(3) + '</b></div>';
+            }
+        }
+        requestAnimationFrame(frame);
+    })();
+    </script>
+</body>
+
+</html>
