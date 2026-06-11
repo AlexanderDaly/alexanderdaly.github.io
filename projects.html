@@ -92,6 +92,93 @@
                 </div>
             </section>
 
+            <section class="uniform-project" aria-labelledby="uniform-title">
+                <div class="uniform-copy">
+                    <div class="article-meta">Interactive Project</div>
+                    <h1 id="uniform-title">Uniform Distribution Lab</h1>
+                    <p class="subtitle">A seeded sampler for watching equal-probability intervals become a flat
+                        histogram and a straight empirical CDF.</p>
+                </div>
+
+                <div class="uniform-layout">
+                    <div class="uniform-frame">
+                        <canvas id="uniform-canvas" role="img"
+                            aria-label="A live visualization of samples from a uniform distribution, including a histogram and empirical cumulative distribution function."></canvas>
+                        <div class="uniform-overlay" aria-hidden="true">
+                            <div class="uniform-live">
+                                <span class="dot"></span>
+                                <span id="ud-status">Idle</span>
+                            </div>
+                            <div class="uniform-equation">X ~ U(0, 1) · P(a ≤ X ≤ b) = b - a</div>
+                        </div>
+                    </div>
+
+                    <aside class="uniform-panel" aria-label="Uniform distribution controls">
+                        <div class="uniform-actions">
+                            <button class="ud-button primary" type="button" id="ud-toggle">Start</button>
+                            <button class="ud-button" type="button" id="ud-draw">Draw 100</button>
+                            <button class="ud-button" type="button" id="ud-reset">Reset</button>
+                        </div>
+
+                        <label class="ud-control" for="ud-rate">
+                            <span>Samples/frame <output id="ud-rate-value" for="ud-rate">80</output></span>
+                            <input id="ud-rate" type="range" min="5" max="240" value="80">
+                        </label>
+
+                        <label class="ud-control" for="ud-bins">
+                            <span>Bins <output id="ud-bins-value" for="ud-bins">20</output></span>
+                            <input id="ud-bins" type="range" min="6" max="40" value="20">
+                        </label>
+
+                        <label class="ud-control" for="ud-left">
+                            <span>Interval start <output id="ud-left-value" for="ud-left">0.25</output></span>
+                            <input id="ud-left" type="range" min="0" max="95" value="25">
+                        </label>
+
+                        <label class="ud-control" for="ud-right">
+                            <span>Interval end <output id="ud-right-value" for="ud-right">0.75</output></span>
+                            <input id="ud-right" type="range" min="5" max="100" value="75">
+                        </label>
+
+                        <label class="ud-control" for="ud-seed">
+                            <span>Seed</span>
+                            <input id="ud-seed" type="text" value="uniform-2026" maxlength="32" spellcheck="false">
+                        </label>
+
+                        <div class="uniform-actions solo">
+                            <button class="ud-button" type="button" id="ud-reroll">New Seed</button>
+                        </div>
+
+                        <div class="uniform-stats" aria-live="polite">
+                            <div class="ud-stat">
+                                <span class="ud-stat-value" id="ud-samples">0</span>
+                                <span class="ud-stat-label">samples</span>
+                            </div>
+                            <div class="ud-stat">
+                                <span class="ud-stat-value" id="ud-mean">0.000</span>
+                                <span class="ud-stat-label">mean</span>
+                            </div>
+                            <div class="ud-stat">
+                                <span class="ud-stat-value" id="ud-variance">0.000</span>
+                                <span class="ud-stat-label">variance</span>
+                            </div>
+                            <div class="ud-stat">
+                                <span class="ud-stat-value" id="ud-observed">0.000</span>
+                                <span class="ud-stat-label">observed P</span>
+                            </div>
+                            <div class="ud-stat">
+                                <span class="ud-stat-value" id="ud-expected">0.500</span>
+                                <span class="ud-stat-label">expected P</span>
+                            </div>
+                            <div class="ud-stat">
+                                <span class="ud-stat-value" id="ud-error">0.000</span>
+                                <span class="ud-stat-label">max bin error</span>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
         </main>
 
         <footer>
@@ -103,6 +190,7 @@
         </footer>
     </div>
     <script defer src="./js/random-walk.js"></script>
+    <script defer src="./js/uniform-distribution.js"></script>
 </body>
 
 </html>
