@@ -23,6 +23,75 @@
         </header>
 
         <main>
+            <section class="random-walk-project" aria-labelledby="random-walk-title">
+                <div class="random-walk-copy">
+                    <div class="article-meta">Interactive Project</div>
+                    <h1 id="random-walk-title">Traditional Random Walk</h1>
+                    <p class="subtitle">Unbiased two-dimensional lattice walks, generated from a seed and rendered as a
+                        live path ensemble.</p>
+                </div>
+
+                <div class="random-walk-layout">
+                    <div class="random-walk-frame">
+                        <canvas id="random-walk-canvas" role="img"
+                            aria-label="A live visualization of two-dimensional unbiased random walks on a lattice."></canvas>
+                        <div class="random-walk-overlay" aria-hidden="true">
+                            <div class="random-walk-live">
+                                <span class="dot"></span>
+                                <span id="rw-status">Idle</span>
+                            </div>
+                            <div class="random-walk-equation">P(N,E,S,W) = 0.25</div>
+                        </div>
+                    </div>
+
+                    <aside class="random-walk-panel" aria-label="Random walk controls">
+                        <div class="random-walk-actions">
+                            <button class="rw-button primary" type="button" id="rw-toggle">Start</button>
+                            <button class="rw-button" type="button" id="rw-step">Step</button>
+                            <button class="rw-button" type="button" id="rw-reset">Reset</button>
+                        </div>
+
+                        <label class="rw-control" for="rw-walkers">
+                            <span>Walkers <output id="rw-walkers-value" for="rw-walkers">12</output></span>
+                            <input id="rw-walkers" type="range" min="1" max="64" value="12">
+                        </label>
+
+                        <label class="rw-control" for="rw-speed">
+                            <span>Steps/frame <output id="rw-speed-value" for="rw-speed">12</output></span>
+                            <input id="rw-speed" type="range" min="1" max="36" value="12">
+                        </label>
+
+                        <label class="rw-control" for="rw-seed">
+                            <span>Seed</span>
+                            <input id="rw-seed" type="text" value="daly-2026" maxlength="32" spellcheck="false">
+                        </label>
+
+                        <div class="random-walk-actions solo">
+                            <button class="rw-button" type="button" id="rw-reroll">New Seed</button>
+                        </div>
+
+                        <div class="random-walk-stats" aria-live="polite">
+                            <div class="rw-stat">
+                                <span class="rw-stat-value" id="rw-steps">0</span>
+                                <span class="rw-stat-label">steps</span>
+                            </div>
+                            <div class="rw-stat">
+                                <span class="rw-stat-value" id="rw-mean">0.0</span>
+                                <span class="rw-stat-label">mean radius</span>
+                            </div>
+                            <div class="rw-stat">
+                                <span class="rw-stat-value" id="rw-rms">0.0</span>
+                                <span class="rw-stat-label">RMS radius</span>
+                            </div>
+                            <div class="rw-stat">
+                                <span class="rw-stat-value" id="rw-expected">0.0</span>
+                                <span class="rw-stat-label">sqrt(steps)</span>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
             <article>
                 <div class="article-header">
                     <div class="article-meta">Latest Project</div>
@@ -102,6 +171,7 @@
             </div>
         </footer>
     </div>
+    <script defer src="./js/random-walk.js"></script>
 </body>
 
 </html>

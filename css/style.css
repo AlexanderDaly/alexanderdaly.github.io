@@ -725,3 +725,294 @@ nav a.active {
     .cloud-chamber-overlay .status-strip { font-size: 0.58rem; gap: 6px 12px; }
     .cloud-chamber-overlay .live { font-size: 0.6rem; }
 }
+
+/* ============================================================
+   Random walk project - seeded lattice walk instrument
+   ============================================================ */
+.random-walk-project {
+    margin: 70px 0 92px;
+}
+
+.random-walk-copy {
+    max-width: 760px;
+    margin-bottom: 28px;
+}
+
+.random-walk-copy .article-meta {
+    margin-bottom: 12px;
+}
+
+.random-walk-copy h1 {
+    font-size: 3.5rem;
+    line-height: 1.08;
+    letter-spacing: -1.5px;
+    margin-bottom: 14px;
+    color: var(--text-color);
+    text-shadow: 0 0 22px var(--glow);
+}
+
+.random-walk-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.65fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+.random-walk-frame {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    min-height: 0;
+    border: 1px solid rgba(120, 240, 255, 0.18);
+    border-radius: 12px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(120, 240, 255, 0.06), rgba(5, 6, 10, 0) 46%),
+        #05060a;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 46, 68, 0.08),
+        inset 0 0 70px rgba(255, 46, 68, 0.08),
+        0 26px 70px -36px rgba(0, 0, 0, 0.85);
+    isolation: isolate;
+}
+
+.random-walk-frame canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.random-walk-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 18%),
+        repeating-linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.025) 0,
+            rgba(255, 255, 255, 0.025) 1px,
+            rgba(255, 255, 255, 0) 3px,
+            rgba(255, 255, 255, 0) 6px);
+    mix-blend-mode: screen;
+    opacity: 0.42;
+}
+
+.random-walk-frame::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 15px;
+    height: 15px;
+    border-top: 1px solid rgba(255, 46, 68, 0.55);
+    border-left: 1px solid rgba(255, 46, 68, 0.55);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.random-walk-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    font-family: var(--font-mono);
+}
+
+.random-walk-live {
+    position: absolute;
+    top: 13px;
+    right: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.66rem;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+.random-walk-live .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #78f0ff;
+    box-shadow: 0 0 10px rgba(120, 240, 255, 0.85);
+}
+
+.random-walk-live.is-running .dot {
+    animation: pulseDot 1.3s ease-in-out infinite;
+}
+
+.random-walk-equation {
+    position: absolute;
+    left: 15px;
+    bottom: 13px;
+    color: rgba(247, 238, 240, 0.6);
+    font-size: 0.66rem;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+}
+
+.random-walk-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: inset 0 0 0 1px rgba(255, 46, 68, 0.05);
+}
+
+.random-walk-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.random-walk-actions.solo {
+    grid-template-columns: 1fr;
+}
+
+.rw-button {
+    min-height: 38px;
+    border: 1px solid rgba(255, 46, 68, 0.34);
+    border-radius: 6px;
+    background: rgba(255, 46, 68, 0.08);
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.rw-button:hover,
+.rw-button:focus-visible {
+    border-color: var(--accent-color);
+    background: rgba(255, 46, 68, 0.16);
+    outline: none;
+}
+
+.rw-button:active {
+    transform: scale(0.96);
+}
+
+.rw-button.primary {
+    border-color: rgba(120, 240, 255, 0.46);
+    background: rgba(120, 240, 255, 0.08);
+    color: #c9fbff;
+}
+
+.rw-control {
+    display: grid;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+.rw-control span {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.rw-control output {
+    color: var(--accent-soft);
+}
+
+.rw-control input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-color);
+}
+
+.rw-control input[type="text"] {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid rgba(255, 46, 68, 0.28);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.24);
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    padding: 0 11px;
+}
+
+.rw-control input[type="text"]:focus {
+    border-color: rgba(120, 240, 255, 0.5);
+    outline: none;
+}
+
+.random-walk-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: auto;
+}
+
+.rw-stat {
+    min-height: 66px;
+    border: 1px solid rgba(255, 46, 68, 0.18);
+    border-radius: 8px;
+    padding: 11px 10px 10px;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.rw-stat-value {
+    display: block;
+    min-height: 24px;
+    font-family: var(--font-mono);
+    font-size: 1.08rem;
+    line-height: 1.15;
+    color: #78f0ff;
+    text-shadow: 0 0 12px rgba(120, 240, 255, 0.35);
+}
+
+.rw-stat-label {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.63rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .random-walk-live.is-running .dot { animation: none; }
+}
+
+@media (max-width: 900px) {
+    .random-walk-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .random-walk-frame {
+        height: 420px;
+    }
+}
+
+@media (max-width: 768px) {
+    .random-walk-project {
+        margin: 52px 0 72px;
+    }
+
+    .random-walk-copy h1 {
+        font-size: 2.45rem;
+    }
+
+    .random-walk-frame {
+        height: 390px;
+    }
+
+    .random-walk-panel {
+        padding: 14px;
+    }
+}
