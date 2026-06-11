@@ -162,6 +162,84 @@
                 </div>
             </section>
 
+            <section class="ecosystem-project" aria-labelledby="ecosystem-title">
+                <div class="ecosystem-copy">
+                    <div class="article-meta">Interactive Project</div>
+                    <h1 id="ecosystem-title">Ecosystem Drift Lab</h1>
+                    <p class="subtitle">A behavior-first simulation: one jittery flying bug and one floating leaf,
+                        both driven by layered random walks, curl-like wind, and seeded noise.</p>
+                </div>
+
+                <div class="ecosystem-layout">
+                    <div class="ecosystem-frame">
+                        <canvas id="ecosystem-canvas" role="img"
+                            aria-label="A live ecosystem simulation with a jittery flying bug and a floating leaf carried by inconsistent wind."></canvas>
+                        <div class="ecosystem-overlay" aria-hidden="true">
+                            <div class="ecosystem-live">
+                                <span class="dot"></span>
+                                <span id="eco-status">Idle</span>
+                            </div>
+                            <div class="ecosystem-equation">Bug: wander + startle + nectar; Leaf: inertia + curl wind
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="ecosystem-panel" aria-label="Ecosystem controls and behavior rules">
+                        <div class="ecosystem-actions">
+                            <button class="eco-button primary" type="button" id="eco-toggle">Start</button>
+                            <button class="eco-button" type="button" id="eco-disturb">Disturb</button>
+                            <button class="eco-button" type="button" id="eco-reset">Reset</button>
+                        </div>
+
+                        <label class="eco-control" for="eco-bug-nerves">
+                            <span>Bug nerves <output id="eco-bug-nerves-value" for="eco-bug-nerves">72</output></span>
+                            <input id="eco-bug-nerves" type="range" min="10" max="95" value="72">
+                        </label>
+
+                        <label class="eco-control" for="eco-breeze-chaos">
+                            <span>Breeze chaos <output id="eco-breeze-chaos-value" for="eco-breeze-chaos">58</output></span>
+                            <input id="eco-breeze-chaos" type="range" min="5" max="95" value="58">
+                        </label>
+
+                        <label class="eco-control" for="eco-seed">
+                            <span>Seed</span>
+                            <input id="eco-seed" type="text" value="mote-field" maxlength="32" spellcheck="false">
+                        </label>
+
+                        <div class="ecosystem-actions solo">
+                            <button class="eco-button" type="button" id="eco-reroll">New Seed</button>
+                        </div>
+
+                        <div class="ecosystem-rules">
+                            <h3>Behavior Rules</h3>
+                            <p><strong>Bug.</strong> Slow wander sets intention; fast jitter bends each wingbeat; nectar
+                                pulls gently; sudden disturbance creates a sharp escape arc.</p>
+                            <p><strong>Leaf.</strong> The breeze is a layered noise field; gusts add torque; inertia makes
+                                the leaf lag behind the air instead of obeying it instantly.</p>
+                        </div>
+
+                        <div class="ecosystem-stats" aria-live="polite">
+                            <div class="eco-stat">
+                                <span class="eco-stat-value" id="eco-bug-state">Hunting</span>
+                                <span class="eco-stat-label">bug state</span>
+                            </div>
+                            <div class="eco-stat">
+                                <span class="eco-stat-value" id="eco-wind">0.00</span>
+                                <span class="eco-stat-label">wind force</span>
+                            </div>
+                            <div class="eco-stat">
+                                <span class="eco-stat-value" id="eco-leaf-spin">0.00</span>
+                                <span class="eco-stat-label">leaf spin</span>
+                            </div>
+                            <div class="eco-stat">
+                                <span class="eco-stat-value" id="eco-startles">0</span>
+                                <span class="eco-stat-label">startles</span>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
             <section class="uniform-project" aria-labelledby="uniform-title">
                 <div class="uniform-copy">
                     <div class="article-meta">Interactive Project</div>
@@ -260,6 +338,7 @@
         </footer>
     </div>
     <script defer src="./js/random-walk.js"></script>
+    <script defer src="./js/ecosystem.js"></script>
     <script defer src="./js/uniform-distribution.js"></script>
 </body>
 
