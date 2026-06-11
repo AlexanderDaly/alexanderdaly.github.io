@@ -1017,6 +1017,302 @@ nav a.active {
     }
 }
 
+.biased-walk-subproject {
+    margin-top: 44px;
+    padding-top: 34px;
+    border-top: 1px solid rgba(255, 46, 68, 0.24);
+}
+
+.biased-walk-copy {
+    max-width: 720px;
+    margin-bottom: 22px;
+}
+
+.biased-walk-copy .article-meta {
+    margin-bottom: 10px;
+}
+
+.biased-walk-copy h2 {
+    font-size: 2.15rem;
+    line-height: 1.15;
+    letter-spacing: 0;
+    margin-bottom: 10px;
+    text-shadow: 0 0 18px rgba(120, 240, 255, 0.3);
+}
+
+.biased-walk-copy p {
+    color: var(--secondary-text);
+    max-width: 620px;
+}
+
+.biased-walk-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+.biased-walk-frame {
+    position: relative;
+    width: 100%;
+    height: 390px;
+    min-height: 0;
+    border: 1px solid rgba(151, 255, 174, 0.22);
+    border-radius: 12px;
+    overflow: hidden;
+    background:
+        linear-gradient(90deg, rgba(120, 240, 255, 0.035), rgba(151, 255, 174, 0.07)),
+        #05060a;
+    box-shadow:
+        inset 0 0 0 1px rgba(120, 240, 255, 0.06),
+        inset 0 0 70px rgba(151, 255, 174, 0.07),
+        0 24px 62px -34px rgba(0, 0, 0, 0.85);
+    isolation: isolate;
+}
+
+.biased-walk-frame canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.biased-walk-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 18%),
+        repeating-linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.02) 0,
+            rgba(255, 255, 255, 0.02) 1px,
+            rgba(255, 255, 255, 0) 3px,
+            rgba(255, 255, 255, 0) 6px);
+    mix-blend-mode: screen;
+    opacity: 0.42;
+}
+
+.biased-walk-frame::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 15px;
+    height: 15px;
+    border-top: 1px solid rgba(151, 255, 174, 0.58);
+    border-left: 1px solid rgba(151, 255, 174, 0.58);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.biased-walk-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    font-family: var(--font-mono);
+}
+
+.biased-walk-live {
+    position: absolute;
+    top: 13px;
+    right: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.66rem;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+.biased-walk-live .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #97ffae;
+    box-shadow: 0 0 10px rgba(151, 255, 174, 0.8);
+}
+
+.biased-walk-live.is-running .dot {
+    animation: pulseDot 1.3s ease-in-out infinite;
+}
+
+.biased-walk-equation {
+    position: absolute;
+    left: 15px;
+    bottom: 13px;
+    max-width: calc(100% - 30px);
+    color: rgba(247, 238, 240, 0.64);
+    font-size: 0.66rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.biased-walk-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: inset 0 0 0 1px rgba(151, 255, 174, 0.06);
+}
+
+.biased-walk-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.biased-walk-actions.solo {
+    grid-template-columns: 1fr;
+}
+
+.bw-button {
+    min-height: 38px;
+    border: 1px solid rgba(151, 255, 174, 0.32);
+    border-radius: 6px;
+    background: rgba(151, 255, 174, 0.075);
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.bw-button:hover,
+.bw-button:focus-visible {
+    border-color: #97ffae;
+    background: rgba(151, 255, 174, 0.14);
+    outline: none;
+}
+
+.bw-button:active {
+    transform: scale(0.96);
+}
+
+.bw-button.primary {
+    border-color: rgba(120, 240, 255, 0.46);
+    background: rgba(120, 240, 255, 0.08);
+    color: #c9fbff;
+}
+
+.bw-control {
+    display: grid;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+.bw-control span {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.bw-control output {
+    color: #97ffae;
+}
+
+.bw-control input[type="range"] {
+    width: 100%;
+    accent-color: #97ffae;
+}
+
+.bw-control input[type="text"] {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid rgba(151, 255, 174, 0.28);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.24);
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    padding: 0 11px;
+}
+
+.bw-control input[type="text"]:focus {
+    border-color: rgba(120, 240, 255, 0.5);
+    outline: none;
+}
+
+.biased-walk-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: auto;
+}
+
+.bw-stat {
+    min-height: 66px;
+    border: 1px solid rgba(151, 255, 174, 0.18);
+    border-radius: 8px;
+    padding: 11px 10px 10px;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.bw-stat-value {
+    display: block;
+    min-height: 24px;
+    font-family: var(--font-mono);
+    font-size: 1.08rem;
+    line-height: 1.15;
+    color: #97ffae;
+    text-shadow: 0 0 12px rgba(151, 255, 174, 0.35);
+}
+
+.bw-stat-label {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.63rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .biased-walk-live.is-running .dot { animation: none; }
+}
+
+@media (max-width: 900px) {
+    .biased-walk-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .biased-walk-frame {
+        height: 360px;
+    }
+}
+
+@media (max-width: 768px) {
+    .biased-walk-subproject {
+        margin-top: 34px;
+        padding-top: 28px;
+    }
+
+    .biased-walk-copy h2 {
+        font-size: 1.75rem;
+    }
+
+    .biased-walk-frame {
+        height: 330px;
+    }
+
+    .biased-walk-panel {
+        padding: 14px;
+    }
+}
+
 /* ============================================================
    Uniform distribution project - probability sampling instrument
    ============================================================ */

@@ -90,6 +90,76 @@
                         </div>
                     </aside>
                 </div>
+
+                <div class="biased-walk-subproject" aria-labelledby="biased-walk-title">
+                    <div class="biased-walk-copy">
+                        <div class="article-meta">Random Walk Subproject</div>
+                        <h2 id="biased-walk-title">A Walker That Tends to Move to the Right</h2>
+                        <p>One lattice walker keeps the same north/south/west alternatives, but gives east a larger
+                            share of the probability mass.</p>
+                    </div>
+
+                    <div class="biased-walk-layout">
+                        <div class="biased-walk-frame">
+                            <canvas id="biased-walk-canvas" role="img"
+                                aria-label="A live visualization of a two-dimensional random walker with a rightward bias."></canvas>
+                            <div class="biased-walk-overlay" aria-hidden="true">
+                                <div class="biased-walk-live">
+                                    <span class="dot"></span>
+                                    <span id="bw-status">Idle</span>
+                                </div>
+                                <div class="biased-walk-equation" id="bw-equation">P(E) = 0.55; P(N,S,W) = 0.15
+                                </div>
+                            </div>
+                        </div>
+
+                        <aside class="biased-walk-panel" aria-label="Right-biased random walk controls">
+                            <div class="biased-walk-actions">
+                                <button class="bw-button primary" type="button" id="bw-toggle">Start</button>
+                                <button class="bw-button" type="button" id="bw-step">Step</button>
+                                <button class="bw-button" type="button" id="bw-reset">Reset</button>
+                            </div>
+
+                            <label class="bw-control" for="bw-bias">
+                                <span>Right probability <output id="bw-bias-value" for="bw-bias">0.55</output></span>
+                                <input id="bw-bias" type="range" min="26" max="85" value="55">
+                            </label>
+
+                            <label class="bw-control" for="bw-speed">
+                                <span>Steps/frame <output id="bw-speed-value" for="bw-speed">10</output></span>
+                                <input id="bw-speed" type="range" min="1" max="32" value="10">
+                            </label>
+
+                            <label class="bw-control" for="bw-seed">
+                                <span>Seed</span>
+                                <input id="bw-seed" type="text" value="right-drift" maxlength="32" spellcheck="false">
+                            </label>
+
+                            <div class="biased-walk-actions solo">
+                                <button class="bw-button" type="button" id="bw-reroll">New Seed</button>
+                            </div>
+
+                            <div class="biased-walk-stats" aria-live="polite">
+                                <div class="bw-stat">
+                                    <span class="bw-stat-value" id="bw-steps">0</span>
+                                    <span class="bw-stat-label">steps</span>
+                                </div>
+                                <div class="bw-stat">
+                                    <span class="bw-stat-value" id="bw-x">0</span>
+                                    <span class="bw-stat-label">x position</span>
+                                </div>
+                                <div class="bw-stat">
+                                    <span class="bw-stat-value" id="bw-expected-x">0.0</span>
+                                    <span class="bw-stat-label">expected x</span>
+                                </div>
+                                <div class="bw-stat">
+                                    <span class="bw-stat-value" id="bw-y">0</span>
+                                    <span class="bw-stat-label">y position</span>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
             </section>
 
             <section class="uniform-project" aria-labelledby="uniform-title">
