@@ -12,6 +12,8 @@
     const frame = canvas.parentElement;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
+    const projectPanel = canvas.closest('[data-project-panel]');
+    let projectActive = !projectPanel || !projectPanel.hidden;
 
     const ui = {
         toggle: document.getElementById('eco-toggle'),
@@ -31,14 +33,11 @@
         startles: document.getElementById('eco-startles')
     };
 
-    const reduceMotion = window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     let W = 0, H = 0, dpr = 1;
     let rng = makeRng('mote-field');
     let seedHash = hashSeed('mote-field');
-    let running = !reduceMotion;
-    let visible = !document.hidden;
+    let running = false;
+    let visible = projectActive && !document.hidden;
     let rafId = 0;
     let lastTime = 0;
     let time = 0;
@@ -760,7 +759,7 @@
     });
 
     document.addEventListener('visibilitychange', () => {
-        visible = !document.hidden;
+        visible = projectActive && !document.hidden;
         if (visible && running) startLoop();
         else stopLoop();
         updateReadouts();
@@ -768,12 +767,27 @@
 
     if ('IntersectionObserver' in window) {
         const observer = new IntersectionObserver((entries) => {
-            visible = entries.some(entry => entry.isIntersecting) && !document.hidden;
+            visible = projectActive && entries.some(entry => entry.isIntersecting) && !document.hidden;
             if (visible && running) startLoop();
             else stopLoop();
             updateReadouts();
         }, { threshold: 0, rootMargin: '100px' });
         observer.observe(frame);
+    }
+
+    if (projectPanel) {
+        projectPanel.addEventListener('project-panel-change', (event) => {
+            projectActive = !!event.detail.active;
+            visible = projectActive && !document.hidden;
+            if (!projectActive) {
+                running = false;
+                stopLoop();
+            } else {
+                resize();
+                if (running && visible) startLoop();
+            }
+            updateReadouts();
+        });
     }
 
     if ('ResizeObserver' in window) {

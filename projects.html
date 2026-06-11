@@ -23,7 +23,42 @@
         </header>
 
         <main>
-            <section class="random-walk-project" aria-labelledby="random-walk-title">
+            <section class="projects-browser" aria-labelledby="projects-browser-title">
+                <div class="projects-browser-copy">
+                    <div class="article-meta">Project Browser</div>
+                    <h1 id="projects-browser-title">Projects</h1>
+                    <p class="subtitle">Interactive experiments grouped into focused panels, so only the selected
+                        project is active on the page.</p>
+                </div>
+
+                <div class="project-switcher" role="tablist" aria-label="Interactive projects">
+                    <button class="project-switch is-active" type="button" role="tab" aria-selected="true"
+                        aria-controls="project-random-walk" id="project-tab-random-walk"
+                        data-project-target="random-walk">
+                        <span class="project-switch-meta">Probability</span>
+                        <span class="project-switch-title">Random Walk Lab</span>
+                        <span class="project-switch-copy">Traditional lattice walks plus a right-biased
+                            subproject.</span>
+                    </button>
+                    <button class="project-switch" type="button" role="tab" aria-selected="false"
+                        aria-controls="project-ecosystem" id="project-tab-ecosystem"
+                        data-project-target="ecosystem">
+                        <span class="project-switch-meta">Motion</span>
+                        <span class="project-switch-title">Ecosystem Drift Lab</span>
+                        <span class="project-switch-copy">A jittery flying bug and floating leaf in a noisy
+                            breeze.</span>
+                    </button>
+                    <button class="project-switch" type="button" role="tab" aria-selected="false"
+                        aria-controls="project-uniform" id="project-tab-uniform" data-project-target="uniform">
+                        <span class="project-switch-meta">Sampling</span>
+                        <span class="project-switch-title">Uniform Distribution Lab</span>
+                        <span class="project-switch-copy">Seeded samples, a histogram, and an empirical CDF.</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="random-walk-project project-panel is-active" id="project-random-walk"
+                data-project-panel="random-walk" role="tabpanel" aria-labelledby="project-tab-random-walk">
                 <div class="random-walk-copy">
                     <div class="article-meta">Interactive Project</div>
                     <h1 id="random-walk-title">Traditional Random Walk</h1>
@@ -162,7 +197,8 @@
                 </div>
             </section>
 
-            <section class="ecosystem-project" aria-labelledby="ecosystem-title">
+            <section class="ecosystem-project project-panel" id="project-ecosystem" data-project-panel="ecosystem"
+                role="tabpanel" aria-labelledby="project-tab-ecosystem" hidden>
                 <div class="ecosystem-copy">
                     <div class="article-meta">Interactive Project</div>
                     <h1 id="ecosystem-title">Ecosystem Drift Lab</h1>
@@ -240,7 +276,8 @@
                 </div>
             </section>
 
-            <section class="uniform-project" aria-labelledby="uniform-title">
+            <section class="uniform-project project-panel" id="project-uniform" data-project-panel="uniform"
+                role="tabpanel" aria-labelledby="project-tab-uniform" hidden>
                 <div class="uniform-copy">
                     <div class="article-meta">Interactive Project</div>
                     <h1 id="uniform-title">Uniform Distribution Lab</h1>
@@ -337,6 +374,7 @@
             </div>
         </footer>
     </div>
+    <script defer src="./js/projects-organizer.js"></script>
     <script defer src="./js/random-walk.js"></script>
     <script defer src="./js/ecosystem.js"></script>
     <script defer src="./js/uniform-distribution.js"></script>

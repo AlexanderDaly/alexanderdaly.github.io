@@ -13,6 +13,8 @@
     const frame = canvas.parentElement;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
+    const projectPanel = canvas.closest('[data-project-panel]');
+    let projectActive = !projectPanel || !projectPanel.hidden;
 
     const ui = {
         toggle: document.getElementById('rw-toggle'),
@@ -32,9 +34,6 @@
         expected: document.getElementById('rw-expected')
     };
 
-    const reduceMotion = window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     const COLORS = [
         [120, 240, 255],
         [255, 138, 43],
@@ -48,8 +47,8 @@
     let rng = makeRng('daly-2026');
     let walkers = [];
     let stepCount = 0;
-    let running = !reduceMotion;
-    let visible = !document.hidden;
+    let running = false;
+    let visible = projectActive && !document.hidden;
     let rafId = 0;
 
     function clamp(v, lo, hi) {
@@ -406,7 +405,7 @@
     }
 
     document.addEventListener('visibilitychange', () => {
-        visible = !document.hidden;
+        visible = projectActive && !document.hidden;
         if (visible && running) startLoop();
         else stopLoop();
         updateReadouts();
@@ -414,12 +413,27 @@
 
     if ('IntersectionObserver' in window) {
         const observer = new IntersectionObserver((entries) => {
-            visible = entries.some(entry => entry.isIntersecting) && !document.hidden;
+            visible = projectActive && entries.some(entry => entry.isIntersecting) && !document.hidden;
             if (visible && running) startLoop();
             else stopLoop();
             updateReadouts();
         }, { threshold: 0, rootMargin: '100px' });
         observer.observe(frame);
+    }
+
+    if (projectPanel) {
+        projectPanel.addEventListener('project-panel-change', (event) => {
+            projectActive = !!event.detail.active;
+            visible = projectActive && !document.hidden;
+            if (!projectActive) {
+                running = false;
+                stopLoop();
+            } else {
+                resize();
+                if (running && visible) startLoop();
+            }
+            updateReadouts();
+        });
     }
 
     if ('ResizeObserver' in window) {
@@ -449,6 +463,8 @@
     const frame = canvas.parentElement;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
+    const projectPanel = canvas.closest('[data-project-panel]');
+    let projectActive = !projectPanel || !projectPanel.hidden;
 
     const ui = {
         toggle: document.getElementById('bw-toggle'),
@@ -469,15 +485,12 @@
         expectedX: document.getElementById('bw-expected-x')
     };
 
-    const reduceMotion = window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     let W = 0, H = 0, dpr = 1;
     let rng = makeRng('right-drift');
     let walker = { x: 0, y: 0, path: [{ x: 0, y: 0 }] };
     let stepCount = 0;
-    let running = !reduceMotion;
-    let visible = !document.hidden;
+    let running = false;
+    let visible = projectActive && !document.hidden;
     let rafId = 0;
 
     function clamp(v, lo, hi) {
@@ -894,7 +907,7 @@
     }
 
     document.addEventListener('visibilitychange', () => {
-        visible = !document.hidden;
+        visible = projectActive && !document.hidden;
         if (visible && running) startLoop();
         else stopLoop();
         updateReadouts();
@@ -902,12 +915,27 @@
 
     if ('IntersectionObserver' in window) {
         const observer = new IntersectionObserver((entries) => {
-            visible = entries.some(entry => entry.isIntersecting) && !document.hidden;
+            visible = projectActive && entries.some(entry => entry.isIntersecting) && !document.hidden;
             if (visible && running) startLoop();
             else stopLoop();
             updateReadouts();
         }, { threshold: 0, rootMargin: '100px' });
         observer.observe(frame);
+    }
+
+    if (projectPanel) {
+        projectPanel.addEventListener('project-panel-change', (event) => {
+            projectActive = !!event.detail.active;
+            visible = projectActive && !document.hidden;
+            if (!projectActive) {
+                running = false;
+                stopLoop();
+            } else {
+                resize();
+                if (running && visible) startLoop();
+            }
+            updateReadouts();
+        });
     }
 
     if ('ResizeObserver' in window) {
