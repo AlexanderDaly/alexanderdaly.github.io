@@ -1437,6 +1437,304 @@ nav a.active {
     }
 }
 
+.vector-walk-subproject {
+    margin-top: 44px;
+    padding-top: 34px;
+    border-top: 1px solid rgba(120, 240, 255, 0.22);
+}
+
+.vector-walk-copy {
+    max-width: 760px;
+    margin-bottom: 22px;
+}
+
+.vector-walk-copy .article-meta {
+    margin-bottom: 10px;
+}
+
+.vector-walk-copy h2 {
+    font-size: 2.15rem;
+    line-height: 1.15;
+    letter-spacing: 0;
+    margin-bottom: 10px;
+    text-shadow: 0 0 18px rgba(255, 45, 166, 0.26);
+}
+
+.vector-walk-copy p {
+    color: var(--secondary-text);
+    max-width: 660px;
+}
+
+.vector-walk-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.68fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+.vector-walk-frame {
+    position: relative;
+    width: 100%;
+    height: 430px;
+    min-height: 0;
+    border: 1px solid rgba(120, 240, 255, 0.22);
+    border-radius: 12px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 38% 42%, rgba(255, 45, 166, 0.08), rgba(5, 6, 10, 0) 42%),
+        radial-gradient(circle at 72% 58%, rgba(120, 240, 255, 0.07), rgba(5, 6, 10, 0) 40%),
+        #05060a;
+    box-shadow:
+        inset 0 0 0 1px rgba(120, 240, 255, 0.07),
+        inset 0 0 70px rgba(120, 240, 255, 0.07),
+        0 24px 62px -34px rgba(0, 0, 0, 0.85);
+    isolation: isolate;
+}
+
+.vector-walk-frame canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.vector-walk-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 18%),
+        repeating-linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.02) 0,
+            rgba(255, 255, 255, 0.02) 1px,
+            rgba(255, 255, 255, 0) 3px,
+            rgba(255, 255, 255, 0) 6px);
+    mix-blend-mode: screen;
+    opacity: 0.42;
+}
+
+.vector-walk-frame::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 15px;
+    height: 15px;
+    border-top: 1px solid rgba(120, 240, 255, 0.62);
+    border-left: 1px solid rgba(120, 240, 255, 0.62);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.vector-walk-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    font-family: var(--font-mono);
+}
+
+.vector-walk-live {
+    position: absolute;
+    top: 13px;
+    right: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.66rem;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+.vector-walk-live .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #78f0ff;
+    box-shadow: 0 0 10px rgba(120, 240, 255, 0.85);
+}
+
+.vector-walk-live.is-running .dot {
+    animation: pulseDot 1.3s ease-in-out infinite;
+}
+
+.vector-walk-equation {
+    position: absolute;
+    left: 15px;
+    bottom: 13px;
+    max-width: calc(100% - 30px);
+    color: rgba(247, 238, 240, 0.64);
+    font-size: 0.66rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.vector-walk-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: inset 0 0 0 1px rgba(120, 240, 255, 0.055);
+}
+
+.vector-walk-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.vector-walk-actions.solo {
+    grid-template-columns: 1fr;
+}
+
+.vw-button {
+    min-height: 38px;
+    border: 1px solid rgba(120, 240, 255, 0.34);
+    border-radius: 6px;
+    background: rgba(120, 240, 255, 0.075);
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.vw-button:hover,
+.vw-button:focus-visible {
+    border-color: #78f0ff;
+    background: rgba(120, 240, 255, 0.14);
+    outline: none;
+}
+
+.vw-button:active {
+    transform: scale(0.96);
+}
+
+.vw-button.primary {
+    border-color: rgba(255, 45, 166, 0.48);
+    background: rgba(255, 45, 166, 0.08);
+    color: #ffd6ef;
+}
+
+.vw-control {
+    display: grid;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+.vw-control span {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vw-control output {
+    color: #78f0ff;
+}
+
+.vw-control input[type="range"] {
+    width: 100%;
+    accent-color: #78f0ff;
+}
+
+.vw-control input[type="text"] {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid rgba(120, 240, 255, 0.28);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.24);
+    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    padding: 0 11px;
+}
+
+.vw-control input[type="text"]:focus {
+    border-color: rgba(255, 45, 166, 0.5);
+    outline: none;
+}
+
+.vector-walk-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: auto;
+}
+
+.vw-stat {
+    min-height: 66px;
+    border: 1px solid rgba(120, 240, 255, 0.18);
+    border-radius: 8px;
+    padding: 11px 10px 10px;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.vw-stat-value {
+    display: block;
+    min-height: 24px;
+    font-family: var(--font-mono);
+    font-size: 1.02rem;
+    line-height: 1.15;
+    color: #78f0ff;
+    text-shadow: 0 0 12px rgba(120, 240, 255, 0.35);
+    overflow-wrap: anywhere;
+}
+
+.vw-stat-label {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.63rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--secondary-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vector-walk-live.is-running .dot { animation: none; }
+}
+
+@media (max-width: 900px) {
+    .vector-walk-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .vector-walk-frame {
+        height: 380px;
+    }
+}
+
+@media (max-width: 768px) {
+    .vector-walk-subproject {
+        margin-top: 34px;
+        padding-top: 28px;
+    }
+
+    .vector-walk-copy h2 {
+        font-size: 1.75rem;
+    }
+
+    .vector-walk-frame {
+        height: 340px;
+    }
+
+    .vector-walk-panel {
+        padding: 14px;
+    }
+}
+
 /* ============================================================
    Ecosystem project - behavior-first creature drift lab
    ============================================================ */

@@ -37,8 +37,8 @@
                         data-project-target="random-walk">
                         <span class="project-switch-meta">Probability</span>
                         <span class="project-switch-title">Random Walk Lab</span>
-                        <span class="project-switch-copy">Traditional lattice walks plus a right-biased
-                            subproject.</span>
+                        <span class="project-switch-copy">Traditional lattice walks plus right-biased lattice and
+                            vector subprojects.</span>
                     </button>
                     <button class="project-switch" type="button" role="tab" aria-selected="false"
                         aria-controls="project-ecosystem" id="project-tab-ecosystem"
@@ -190,6 +190,88 @@
                                 <div class="bw-stat">
                                     <span class="bw-stat-value" id="bw-y">0</span>
                                     <span class="bw-stat-label">y position</span>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+
+                <div class="vector-walk-subproject" aria-labelledby="vector-walk-title">
+                    <div class="vector-walk-copy">
+                        <div class="article-meta">Random Walk Subproject</div>
+                        <h2 id="vector-walk-title">The Same Rightward Bias, But as Vectors</h2>
+                        <p>Instead of choosing lattice directions, every step adds a steady drift vector to a random
+                            noise vector, then integrates the result into a continuous path.</p>
+                    </div>
+
+                    <div class="vector-walk-layout">
+                        <div class="vector-walk-frame">
+                            <canvas id="vector-walk-canvas" role="img"
+                                aria-label="A live visualization of a continuous vector random walk with a rightward drift."></canvas>
+                            <div class="vector-walk-overlay" aria-hidden="true">
+                                <div class="vector-walk-live">
+                                    <span class="dot"></span>
+                                    <span id="vw-status">Idle</span>
+                                </div>
+                                <div class="vector-walk-equation" id="vw-equation">step = drift + noise vector</div>
+                            </div>
+                        </div>
+
+                        <aside class="vector-walk-panel" aria-label="Right-biased vector walk controls">
+                            <div class="vector-walk-actions">
+                                <button class="vw-button primary" type="button" id="vw-toggle">Start</button>
+                                <button class="vw-button" type="button" id="vw-step">Step</button>
+                                <button class="vw-button" type="button" id="vw-reset">Reset</button>
+                            </div>
+
+                            <label class="vw-control" for="vw-drift">
+                                <span>Right drift <output id="vw-drift-value" for="vw-drift">0.36</output></span>
+                                <input id="vw-drift" type="range" min="0" max="90" value="36">
+                            </label>
+
+                            <label class="vw-control" for="vw-noise">
+                                <span>Noise strength <output id="vw-noise-value" for="vw-noise">0.74</output></span>
+                                <input id="vw-noise" type="range" min="10" max="120" value="74">
+                            </label>
+
+                            <label class="vw-control" for="vw-speed">
+                                <span>Steps/frame <output id="vw-speed-value" for="vw-speed">8</output></span>
+                                <input id="vw-speed" type="range" min="1" max="28" value="8">
+                            </label>
+
+                            <label class="vw-control" for="vw-seed">
+                                <span>Seed</span>
+                                <input id="vw-seed" type="text" value="vector-drift" maxlength="32" spellcheck="false">
+                            </label>
+
+                            <div class="vector-walk-actions solo">
+                                <button class="vw-button" type="button" id="vw-reroll">New Seed</button>
+                            </div>
+
+                            <div class="vector-walk-stats" aria-live="polite">
+                                <div class="vw-stat">
+                                    <span class="vw-stat-value" id="vw-steps">0</span>
+                                    <span class="vw-stat-label">steps</span>
+                                </div>
+                                <div class="vw-stat">
+                                    <span class="vw-stat-value" id="vw-x">0.00</span>
+                                    <span class="vw-stat-label">x displacement</span>
+                                </div>
+                                <div class="vw-stat">
+                                    <span class="vw-stat-value" id="vw-y">0.00</span>
+                                    <span class="vw-stat-label">y displacement</span>
+                                </div>
+                                <div class="vw-stat">
+                                    <span class="vw-stat-value" id="vw-resultant">0.00</span>
+                                    <span class="vw-stat-label">resultant</span>
+                                </div>
+                                <div class="vw-stat">
+                                    <span class="vw-stat-value" id="vw-last-vector">0.00, 0.00</span>
+                                    <span class="vw-stat-label">last vector</span>
+                                </div>
+                                <div class="vw-stat">
+                                    <span class="vw-stat-value" id="vw-heading">0 deg</span>
+                                    <span class="vw-stat-label">heading</span>
                                 </div>
                             </div>
                         </aside>
