@@ -17,15 +17,88 @@
         canvas.id = 'singularity-bg';
         document.body.prepend(canvas);
     }
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
     if (!ctx) return;
 
     const TAU = Math.PI * 2;
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    const hasTouch = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
 
     let W = 0, H = 0, dpr = 1, cx = 0, cy = 0, S = 0;
     let R = 0;                 // shadow radius, px
     let t0 = performance.now();
+    let vignetteGradient = null;
+
+    const perf = {
+        mobile: false,
+        dprCap: 1.6,
+        particleCount: 1800,
+        starCount: 220,
+        gasRings: 30,
+        gasSegs: 76,
+        gridRows: 14,
+        gridCols: 9,
+        fps: 60,
+        glowMin: 0.12,
+        headMin: 0.4,
+        strokeScale: 1,
+        lensArcLimit: 90
+    };
+
+    function configurePerformance() {
+        const shortSide = Math.min(W, H);
+        const area = W * H;
+        perf.mobile = shortSide < 520 || ((coarsePointer || hasTouch) && shortSide < 820);
+        perf.dprCap = perf.mobile ? 1.15 : (shortSide < 760 ? 1.35 : 1.7);
+        perf.fps = reduceMotion ? 24 : (perf.mobile ? 42 : 60);
+
+        if (perf.mobile) {
+            perf.particleCount = reduceMotion ? 360 : 760;
+            perf.starCount = 150;
+            perf.gasRings = 14;
+            perf.gasSegs = 42;
+            perf.gridRows = 9;
+            perf.gridCols = 6;
+            perf.glowMin = 0.34;
+            perf.headMin = 0.58;
+            perf.strokeScale = 0.9;
+            perf.lensArcLimit = 44;
+        } else if (area < 720000) {
+            perf.particleCount = reduceMotion ? 520 : 1200;
+            perf.starCount = 190;
+            perf.gasRings = 20;
+            perf.gasSegs = 56;
+            perf.gridRows = 12;
+            perf.gridCols = 8;
+            perf.glowMin = 0.2;
+            perf.headMin = 0.48;
+            perf.strokeScale = 0.95;
+            perf.lensArcLimit = 64;
+        } else if (W < 1300) {
+            perf.particleCount = reduceMotion ? 780 : 2100;
+            perf.starCount = 230;
+            perf.gasRings = 28;
+            perf.gasSegs = 72;
+            perf.gridRows = 14;
+            perf.gridCols = 9;
+            perf.glowMin = 0.14;
+            perf.headMin = 0.43;
+            perf.strokeScale = 1;
+            perf.lensArcLimit = 80;
+        } else {
+            perf.particleCount = reduceMotion ? 1000 : 3000;
+            perf.starCount = 260;
+            perf.gasRings = 34;
+            perf.gasSegs = 88;
+            perf.gridRows = 16;
+            perf.gridCols = 10;
+            perf.glowMin = 0.12;
+            perf.headMin = 0.4;
+            perf.strokeScale = 1;
+            perf.lensArcLimit = 96;
+        }
+    }
 
     // ---- interaction state (eased toward targets) ----
     const ptr = {
@@ -45,40 +118,73 @@
 
     // ---- particle disk ----
     let particles = [];
+    let particleId = 0;
+    const frontParticles = [];
+    const backParticles = [];
+
     function buildParticles() {
-        // +50% density over the prior 1100 / 1800 / 2600 tiers
-        const n = W < 700 ? 1650 : (W < 1300 ? 2700 : 3900);
+        const n = perf.particleCount;
         particles = new Array(n);
         for (let i = 0; i < n; i++) particles[i] = spawnParticle(true);
     }
+
+    function tuneParticleCount() {
+        const n = perf.particleCount;
+        if (!particles.length) {
+            buildParticles();
+            return;
+        }
+        if (particles.length > n) {
+            particles.length = n;
+            return;
+        }
+        while (particles.length < n) particles.push(spawnParticle(true));
+    }
+
     function spawnParticle(initial) {
         // bias density toward the hot inner edge
         const ru = Math.pow(rnd(), 1.7);                 // 0 = inner, 1 = outer
         return {
+            id: particleId++,
             ru,
             a: rnd() * TAU,
             jitter: 0.85 + rnd() * 0.3,                  // per-particle speed variation
             thick: rnd(),                                // size variation
+            x: 0, y: 0, vx: 0, vy: 0, u: 0, prox: 0, trail: 0,
             // when not the initial fill, start at the outer rim (fresh infall)
             _fresh: !initial
         };
     }
 
     function resize() {
-        dpr = Math.min(window.devicePixelRatio || 1, 2);
         W = window.innerWidth; H = window.innerHeight;
-        canvas.width = Math.round(W * dpr);
-        canvas.height = Math.round(H * dpr);
+        configurePerformance();
+        dpr = Math.min(window.devicePixelRatio || 1, perf.dprCap);
+        const nextW = Math.round(W * dpr);
+        const nextH = Math.round(H * dpr);
+        if (canvas.width !== nextW) canvas.width = nextW;
+        if (canvas.height !== nextH) canvas.height = nextH;
         canvas.style.width = W + 'px';
         canvas.style.height = H + 'px';
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = false;
         cx = W * 0.5; cy = H * 0.5;
         S = Math.min(W, H);
         R = Math.max(34, S * 0.10);
-        if (!particles.length) buildParticles();
+        vignetteGradient = ctx.createRadialGradient(cx, cy, S * 0.25, cx, cy, S * 0.85);
+        vignetteGradient.addColorStop(0, 'rgba(7,5,10,0)');
+        vignetteGradient.addColorStop(1, 'rgba(4,2,7,0.72)');
+        tuneParticleCount();
     }
     resize();
-    window.addEventListener('resize', resize);
+    let resizeRaf = 0;
+    window.addEventListener('resize', () => {
+        if (resizeRaf) return;
+        resizeRaf = requestAnimationFrame(() => {
+            resizeRaf = 0;
+            resize();
+        });
+    });
 
     // ---- starfield ----
     const stars = [];
@@ -135,8 +241,8 @@
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineWidth = 1;
         const drift = (time * 0.06) % 1;
-        for (let i = 0; i < 16; i++) {
-            const f = (i + drift) / 16;
+        for (let i = 0; i < perf.gridRows; i++) {
+            const f = (i + drift) / perf.gridRows;
             const y = horizon + Math.pow(f, 2.2) * (H - horizon) * 1.1;
             if (y > H) continue;
             const a = 0.09 * (1 - f);
@@ -144,9 +250,9 @@
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
         }
         const vp = cx + ptr.px * 0.5;
-        for (let i = -10; i <= 10; i++) {
-            const x = vp + i * (W / 14);
-            const a = 0.06 * (1 - Math.abs(i) / 11);
+        for (let i = -perf.gridCols; i <= perf.gridCols; i++) {
+            const x = vp + i * (W / (perf.gridCols + 4));
+            const a = 0.06 * (1 - Math.abs(i) / (perf.gridCols + 1));
             ctx.strokeStyle = 'rgba(255,60,120,' + a.toFixed(3) + ')';
             ctx.beginPath(); ctx.moveTo(vp + i * 8, horizon); ctx.lineTo(x, H); ctx.stroke();
         }
@@ -154,11 +260,62 @@
     }
 
     function drawStars(time) {
+        const bx = cx + ptr.px, by = cy + ptr.py;
+        const lensOuter = R * (perf.mobile ? 4.4 : 5.2);
+        const ringR = R * 1.55;
+        const ringWidth = R * 0.92;
+        const count = Math.min(stars.length, perf.starCount);
+        let arcsDrawn = 0;
+
         ctx.globalCompositeOperation = 'lighter';
-        for (const s of stars) {
+        ctx.lineCap = 'round';
+        for (let i = 0; i < count; i++) {
+            const s = stars[i];
             const tw = 0.4 + 0.6 * Math.abs(Math.sin(s.tw + time * s.sp));
-            ctx.fillStyle = 'rgba(255,210,220,' + (tw * 0.5 * s.r).toFixed(3) + ')';
-            ctx.fillRect(s.fx * W + ptr.px * 0.15, s.fy * H + ptr.py * 0.15, s.r, s.r);
+            const baseA = tw * 0.5 * s.r;
+            const sx = s.fx * W + ptr.px * 0.15;
+            const sy = s.fy * H + ptr.py * 0.15;
+            const dx = sx - bx, dy = sy - by;
+            const dist = Math.hypot(dx, dy) || 1;
+
+            if (dist < lensOuter && dist > R * 0.8) {
+                const inv = 1 / dist;
+                const nx = dx * inv, ny = dy * inv;
+                const bend = 1 - dist / lensOuter;
+                const ring = Math.exp(-Math.pow((dist - ringR) / ringWidth, 2));
+                const shift = R * (0.18 * bend * bend + 0.56 * ring * bend);
+                const lx = sx + nx * shift;
+                const ly = sy + ny * shift;
+                const a = Math.min(0.72, baseA * (0.8 + ring * 1.7));
+
+                if (ring > 0.13 && arcsDrawn < perf.lensArcLimit) {
+                    const angle = Math.atan2(dy, dx);
+                    const arcRadius = Math.max(R * 1.32, dist + shift * 0.35);
+                    const arcLen = (0.03 + ring * 0.17) * (perf.mobile ? 0.74 : 1);
+                    ctx.strokeStyle = 'rgba(255,226,238,' + Math.min(0.55, a * 0.8).toFixed(3) + ')';
+                    ctx.lineWidth = Math.max(0.55, s.r * (1.2 + ring * 2.2));
+                    ctx.beginPath();
+                    ctx.arc(bx, by, arcRadius, angle - arcLen, angle + arcLen);
+                    ctx.stroke();
+                    arcsDrawn++;
+
+                    if (!perf.mobile && ring > 0.42 && arcsDrawn < perf.lensArcLimit) {
+                        ctx.strokeStyle = 'rgba(255,130,180,' + Math.min(0.22, a * 0.36).toFixed(3) + ')';
+                        ctx.lineWidth = Math.max(0.5, s.r * 1.1);
+                        ctx.beginPath();
+                        ctx.arc(bx, by, R * 1.42, angle + Math.PI - arcLen * 0.7, angle + Math.PI + arcLen * 0.7);
+                        ctx.stroke();
+                        arcsDrawn++;
+                    }
+                }
+
+                ctx.fillStyle = 'rgba(255,222,234,' + a.toFixed(3) + ')';
+                ctx.fillRect(lx, ly, s.r, s.r);
+                continue;
+            }
+
+            ctx.fillStyle = 'rgba(255,210,220,' + baseA.toFixed(3) + ')';
+            ctx.fillRect(sx, sy, s.r, s.r);
         }
     }
 
@@ -166,8 +323,8 @@
     function drawGasHalf(near, time) {
         const yscale = Math.cos(ptr.inc);
         const inner = R * 1.3, outer = R * OUTER_U;
-        const rings = W < 700 ? 22 : 34;
-        const segs = W < 700 ? 56 : 88;
+        const rings = perf.gasRings;
+        const segs = perf.gasSegs;
         const bx = cx + ptr.px, by = cy + ptr.py;
         const flareBoost = 1 + ptr.flare * 0.6;
         ctx.globalCompositeOperation = 'lighter';
@@ -201,48 +358,69 @@
     }
 
     // ---- the particle disk (dense flowing streaks) ----
-    // near=true draws the front band (occludes the hole's lower edge); near=false
-    // draws the back, lensed up over the top.
-    function drawParticles(near, time, dt) {
+    // Particles are integrated/projected once per frame, then drawn in two lists so
+    // the back half can sit behind the shadow and the front half can cross it.
+    function projectParticles(dt) {
         const yscale = Math.cos(ptr.inc);
         const inner = R * INNER_U, outer = R * OUTER_U;
         const span = outer - inner;
         const bx = cx + ptr.px, by = cy + ptr.py;
-        const flareBoost = 1 + ptr.flare * 1.1;
-        const dopBias = ptr.dop;
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.lineCap = 'round';
+        frontParticles.length = 0;
+        backParticles.length = 0;
 
         for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            const rr = inner + span * p.ru;
-            // Keplerian angular speed (faster inner); only advance/age on the near
-            // pass so each particle integrates exactly once per frame.
+            let p = particles[i];
+            let rr = inner + span * p.ru;
+            // Keplerian angular speed (faster inner).
             const omega = 1.9 / Math.pow(rr / R, 1.5) * p.jitter;
-            if (near) {
-                p.a += omega * dt;
-                p.ru -= dt * 0.018 * (1.2 - p.ru);          // slow inward spiral
-                if (p.ru <= 0) { const np = spawnParticle(false); np.ru = 0.92 + rnd() * 0.08; particles[i] = np; continue; }
+            p.a += omega * dt;
+            p.ru -= dt * 0.018 * (1.2 - p.ru);              // slow inward spiral
+            if (p.ru <= 0) {
+                p = spawnParticle(false);
+                p.ru = 0.92 + rnd() * 0.08;
+                particles[i] = p;
             }
-            const sinA = Math.sin(p.a), cosA = Math.cos(p.a);
-            if ((sinA >= 0) !== near) continue;             // this pass only draws its half
+            rr = inner + span * p.ru;
 
-            const x = bx + cosA * rr;
+            const sinA = Math.sin(p.a), cosA = Math.cos(p.a);
+            const near = sinA >= 0;
+
+            p.x = bx + cosA * rr;
             let y = by + sinA * rr * yscale;
             if (!near) y -= liftAt(rr) * (-sinA);           // lens the back up over the top
+            p.y = y;
 
             // tangential velocity direction (screen space) for the motion-blur streak
             let vx = -sinA, vy = cosA * yscale;
             const vlen = Math.hypot(vx, vy) || 1; vx /= vlen; vy /= vlen;
+            p.vx = vx;
+            p.vy = vy;
 
             const u = 1 - p.ru;                              // 1 = hot inner
             const speed = omega * rr;
-            const trail = Math.min(R * 0.16, 1.5 + speed * 0.05);
+            p.u = u;
+            p.trail = Math.min(R * (perf.mobile ? 0.12 : 0.16), 1.5 + speed * (perf.mobile ? 0.036 : 0.05));
 
             // proximity to the singularity: 0 at the rim, 1 at the inner edge,
             // ramped non-linearly so the glow surges as material falls inward
             // (mimics the steep rise in temperature/intensity near the hole).
             const prox = u * u * (3 - 2 * u);                // smoothstep(u)
+            p.prox = prox;
+
+            if (near) frontParticles.push(p); else backParticles.push(p);
+        }
+    }
+
+    function drawParticles(list) {
+        const flareBoost = 1 + ptr.flare * 1.1;
+        const dopBias = ptr.dop;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'round';
+
+        for (let i = 0; i < list.length; i++) {
+            const p = list[i];
+            const x = p.x, y = p.y, vx = p.vx, vy = p.vy;
+            const u = p.u, prox = p.prox, trail = p.trail;
             const glow = 0.35 + 2.6 * prox * prox;           // intensity multiplier
 
             // relativistic Doppler beaming: the limb coming toward the viewer (here
@@ -260,9 +438,9 @@
 
             // soft glow halo, intensifying toward the singularity — a wider, faint
             // underlay stroke so close-in particles bloom
-            if (prox > 0.12) {
+            if (prox > perf.glowMin && (!perf.mobile || prox > 0.47 || (p.id & 1) === 0)) {
                 ctx.strokeStyle = 'rgba(' + r8 + ',' + g8 + ',' + b8 + ',' + Math.min(0.4, a * 0.45 * prox).toFixed(3) + ')';
-                ctx.lineWidth = (0.6 + p.thick * 1.3 + u * 1.2) + 2.5 + prox * 5.5;
+                ctx.lineWidth = ((0.6 + p.thick * 1.3 + u * 1.2) + 2.5 + prox * 5.5) * perf.strokeScale;
                 ctx.beginPath();
                 ctx.moveTo(x - vx * trail, y - vy * trail);
                 ctx.lineTo(x, y);
@@ -270,14 +448,14 @@
             }
 
             ctx.strokeStyle = 'rgba(' + r8 + ',' + g8 + ',' + b8 + ',' + a.toFixed(3) + ')';
-            ctx.lineWidth = 0.6 + p.thick * 1.3 + u * 1.2;
+            ctx.lineWidth = (0.6 + p.thick * 1.3 + u * 1.2) * perf.strokeScale;
             ctx.beginPath();
             ctx.moveTo(x - vx * trail, y - vy * trail);
             ctx.lineTo(x, y);
             ctx.stroke();
 
             // bright white-hot head for the closest, fastest particles
-            if (prox > 0.4) {
+            if (prox > perf.headMin) {
                 ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.85, a * 1.1).toFixed(3) + ')';
                 const hs = 0.6 + prox * 1.4;
                 ctx.fillRect(x - hs * 0.5, y - hs * 0.5, hs, hs);
@@ -296,6 +474,26 @@
         g.addColorStop(1, 'rgba(6,4,9,0)');               // fades fully -> no rim
         ctx.fillStyle = g;
         ctx.beginPath(); ctx.arc(bx, by, R * 1.3, 0, TAU); ctx.fill();
+    }
+
+    function drawLensingRing(time) {
+        const bx = cx + ptr.px, by = cy + ptr.py;
+        const pulse = 0.5 + 0.5 * Math.sin(time * 0.8);
+        const radius = R * 1.36;
+        const segments = perf.mobile ? 3 : 5;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'round';
+
+        for (let i = 0; i < segments; i++) {
+            const start = time * (0.05 + i * 0.006) + i * TAU / segments;
+            const len = 0.44 + 0.22 * Math.sin(time * 0.7 + i * 1.9);
+            const a = 0.08 + 0.06 * pulse + (i % 2) * 0.035;
+            ctx.strokeStyle = 'rgba(255,210,226,' + a.toFixed(3) + ')';
+            ctx.lineWidth = (1.0 + i * 0.18) * perf.strokeScale;
+            ctx.beginPath();
+            ctx.arc(bx, by, radius + i * R * 0.035, start, start + len);
+            ctx.stroke();
+        }
     }
 
     function drawFlares(time, dt) {
@@ -318,21 +516,31 @@
 
     function vignette() {
         ctx.globalCompositeOperation = 'source-over';
-        const g = ctx.createRadialGradient(cx, cy, S * 0.25, cx, cy, S * 0.85);
-        g.addColorStop(0, 'rgba(7,5,10,0)');
-        g.addColorStop(1, 'rgba(4,2,7,0.72)');
-        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = vignetteGradient || 'rgba(4,2,7,0.5)';
+        ctx.fillRect(0, 0, W, H);
     }
 
     // ---- main loop ----
-    let last = performance.now(), running = true, flareAcc = 0;
-    document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) last = performance.now(); });
+    let last = performance.now(), lastPaint = 0, running = true, flareAcc = 0;
+    document.addEventListener('visibilitychange', () => {
+        running = !document.hidden;
+        if (running) {
+            last = performance.now();
+            lastPaint = 0;
+        }
+    });
 
     function ease(cur, tgt, k, dt) { return cur + (tgt - cur) * (1 - Math.exp(-k * dt)); }
 
     function frame(now) {
+        requestAnimationFrame(frame);
         if (running) {
-            const dt = Math.min((now - last) / 1000, 0.05); last = now;
+            const frameInterval = 1000 / perf.fps;
+            if (now - lastPaint < frameInterval) return;
+
+            const dt = Math.min((now - last) / 1000, 0.06);
+            last = now;
+            lastPaint = now;
             const time = (now - t0) / 1000;
 
             ptr.inc = ease(ptr.inc, ptr.incT, 4, dt);
@@ -350,24 +558,26 @@
 
             drawGrid(time);
             drawStars(time);
+            projectParticles(dt);
 
             // back of disk (behind / lensed over the top)
             drawGasHalf(false, time);
-            drawParticles(false, time, dt);
+            drawParticles(backParticles);
 
             // the hole itself — soft, no drawn outline
             drawVoid();
+            drawLensingRing(time);
 
             // front of disk (in front of the hole's lower edge)
             drawGasHalf(true, time);
-            drawParticles(true, time, dt);
+            drawParticles(frontParticles);
 
             drawFlares(time, dt);
             vignette();
         } else {
             last = now;
+            lastPaint = now;
         }
-        requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
 })();
