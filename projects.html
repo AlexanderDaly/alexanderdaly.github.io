@@ -43,9 +43,9 @@
                     <button class="project-switch" type="button" role="tab" aria-selected="false"
                         aria-controls="project-vectors" id="project-tab-vectors" data-project-target="vectors">
                         <span class="project-switch-meta">Vectors</span>
-                        <span class="project-switch-title">Magnetic Fireflies</span>
-                        <span class="project-switch-copy">Glowing points subtract their positions from the pointer,
-                            then add the resulting force.</span>
+                        <span class="project-switch-title">Vector Physics Sandbox</span>
+                        <span class="project-switch-copy">A common force spine for field motion, probes, and future
+                            gravity or steering behaviors.</span>
                     </button>
                     <button class="project-switch" type="button" role="tab" aria-selected="false"
                         aria-controls="project-ecosystem" id="project-tab-ecosystem"
@@ -286,80 +286,23 @@
                 </div>
             </section>
 
-            <section class="fireflies-project project-panel" id="project-vectors" data-project-panel="vectors"
+            <section class="vector-sandbox-project project-panel" id="project-vectors" data-project-panel="vectors"
                 role="tabpanel" aria-labelledby="project-tab-vectors" hidden>
-                <div class="fireflies-copy">
+                <div class="vector-sandbox-copy">
                     <div class="article-meta">Interactive Project</div>
-                    <h1 id="fireflies-title">Magnetic Fireflies</h1>
-                    <p class="subtitle">A vector subtraction playground: each firefly forms direction = mouse -
-                        position, then adds a small attraction or repulsion force to its velocity.</p>
+                    <h1 id="vector-sandbox-title">Vector Physics Sandbox</h1>
+                    <p class="subtitle">A p5.js force-field instrument where every behavior applies force to the same
+                        semi-implicit Euler agent spine.</p>
                 </div>
 
-                <div class="fireflies-layout">
-                    <div class="fireflies-frame">
-                        <canvas id="fireflies-canvas" role="img"
-                            aria-label="A live vector visualization where glowing fireflies drift and react to the mouse pointer."></canvas>
-                        <div class="fireflies-overlay" aria-hidden="true">
-                            <div class="fireflies-live">
-                                <span class="dot"></span>
-                                <span id="ff-status">Idle</span>
-                            </div>
-                            <div class="fireflies-equation" id="ff-equation">direction = mouse - position; velocity +=
-                                direction * force</div>
-                        </div>
+                <div class="vector-sandbox-layout">
+                    <div class="vector-sandbox-frame">
+                        <iframe src="./projects/vector-physics-sandbox/index.html"
+                            title="Vector Physics Sandbox p5.js demo"
+                            aria-label="A p5.js vector physics sandbox with a probe showing velocity and acceleration arrows."></iframe>
                     </div>
 
-                    <aside class="fireflies-panel" aria-label="Magnetic fireflies controls">
-                        <div class="fireflies-actions">
-                            <button class="ff-button primary" type="button" id="ff-toggle">Pause</button>
-                            <button class="ff-button" type="button" id="ff-scatter">Scatter</button>
-                            <button class="ff-button" type="button" id="ff-reset">Reset</button>
-                        </div>
-
-                        <label class="ff-control" for="ff-count">
-                            <span>Fireflies <output id="ff-count-value" for="ff-count">36</output></span>
-                            <input id="ff-count" type="range" min="20" max="50" value="36">
-                        </label>
-
-                        <label class="ff-control" for="ff-radius">
-                            <span>Magnet radius <output id="ff-radius-value" for="ff-radius">180</output></span>
-                            <input id="ff-radius" type="range" min="80" max="280" value="180">
-                        </label>
-
-                        <label class="ff-control" for="ff-strength">
-                            <span>Force strength <output id="ff-strength-value" for="ff-strength">0.42</output></span>
-                            <input id="ff-strength" type="range" min="0" max="100" value="42">
-                        </label>
-
-                        <label class="ff-control ff-check" for="ff-repel">
-                            <span>Repel from pointer</span>
-                            <input id="ff-repel" type="checkbox">
-                        </label>
-
-                        <label class="ff-control ff-check" for="ff-vectors">
-                            <span>Show force vectors</span>
-                            <input id="ff-vectors" type="checkbox" checked>
-                        </label>
-
-                        <div class="fireflies-stats" aria-live="polite">
-                            <div class="ff-stat">
-                                <span class="ff-stat-value" id="ff-active">0</span>
-                                <span class="ff-stat-label">active vectors</span>
-                            </div>
-                            <div class="ff-stat">
-                                <span class="ff-stat-value" id="ff-nearest">0</span>
-                                <span class="ff-stat-label">nearest distance</span>
-                            </div>
-                            <div class="ff-stat">
-                                <span class="ff-stat-value" id="ff-direction">0, 0</span>
-                                <span class="ff-stat-label">mouse - position</span>
-                            </div>
-                            <div class="ff-stat">
-                                <span class="ff-stat-value" id="ff-force">0.00</span>
-                                <span class="ff-stat-label">force magnitude</span>
-                            </div>
-                        </div>
-                    </aside>
+                    <a class="vector-sandbox-open" href="./projects/vector-physics-sandbox/index.html">Open standalone</a>
                 </div>
             </section>
 
@@ -542,7 +485,6 @@
     </div>
     <script defer src="./js/projects-organizer.js"></script>
     <script defer src="./js/random-walk.js"></script>
-    <script defer src="./js/magnetic-fireflies.js"></script>
     <script defer src="./js/ecosystem.js"></script>
     <script defer src="./js/uniform-distribution.js"></script>
 </body>

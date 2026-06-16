@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Physics Sandbox</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+    <style>
+        :root {
+            --bg: #04060a;
+            --text: #e8f4ee;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        #sketch {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <main id="sketch" aria-label="Vector physics sandbox showing field-driven agents and a probe overlay."></main>
+
+    <script>
+        const NUM_AGENTS = 360;
+        const FIELD_SCALE = 0.0042;
+        const FIELD_STRENGTH = 0.055;
+        const MAX_SPEED = 2.35;
+        const TRAIL_ALPHA = 18;
+        const VEL_ARROW = 18;
+        const ACC_ARROW = 1800;
+
+        const GROUND = [4, 6, 10];
+        const TRAIL = [125, 230, 255];
+        const FIELD = [96, 245, 190];
+        const FIGHT = [255, 88, 94];
+        const INK = [232, 244, 238];
+
+        let agents = [];
+
+        class Agent {
+            constructor(x, y) {
+                this.position = createVector(x, y);
+                this.velocity = p5.Vector.random2D().mult(random(0.25, MAX_SPEED));
+                this.acceleration = createVector(0, 0);
+                this.maxSpeed = MAX_SPEED;
+            }
+
+            applyForce(f) {
+                this.acceleration.add(f);
+            }
+
+            update() {
+                this.velocity.add(this.acceleration);
+                this.velocity.limit(this.maxSpeed);
+                this.position.add(this.velocity);
+                this.acceleration.mult(0);
+                this.wrap();
+            }
+
+            wrap() {
+                if (this.position.x < 0) this.position.x += width;
+                else if (this.position.x >= width) this.position.x -= width;
+                if (this.position.y < 0) this.position.y += height;
+                else if (this.position.y >= height) this.position.y -= height;
+            }
+        }
+
+        function fieldForce(pos) {
+            const angle = noise(pos.x * FIELD_SCALE, pos.y * FIELD_SCALE) * TWO_PI * 2;
+            return p5.Vector.fromAngle(angle).mult(FIELD_STRENGTH);
+        }
+
+        function setup() {
+            const canvas = createCanvas(windowWidth, windowHeight);
+            canvas.parent('sketch');
+            pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
+            strokeCap(ROUND);
+            textFont('ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace');
+            seedAgents();
+            background(GROUND[0], GROUND[1], GROUND[2]);
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            seedAgents();
+            background(GROUND[0], GROUND[1], GROUND[2]);
+        }
+
+        function seedAgents() {
+            agents = [];
+            for (let i = 0; i < NUM_AGENTS; i++) {
+                agents.push(new Agent(random(width), random(height)));
+            }
+        }
+
+        function draw() {
+            fadeTrails();
+            const probe = nearestAgent(mouseX, mouseY);
+            let probeAcceleration = createVector(0, 0);
+
+            blendMode(ADD);
+            for (const agent of agents) {
+                const x0 = agent.position.x;
+                const y0 = agent.position.y;
+                const force = fieldForce(agent.position);
+                if (agent === probe) probeAcceleration = force.copy();
+
+                agent.applyForce(force);
+                // Additional forces plug in here through agent.applyForce(...).
+                agent.update();
+                drawAgentTrace(agent, x0, y0, agent === probe);
+            }
+
+            blendMode(BLEND);
+            if (probe) drawProbe(probe, probeAcceleration);
+            drawReadout(probe, probeAcceleration);
+        }
+
+        function fadeTrails() {
+            blendMode(BLEND);
+            noStroke();
+            fill(GROUND[0], GROUND[1], GROUND[2], TRAIL_ALPHA);
+            rect(0, 0, width, height);
+        }
+
+        function nearestAgent(x, y) {
+            let nearest = null;
+            let best = Infinity;
+            for (const agent of agents) {
+                const dx = agent.position.x - x;
+                const dy = agent.position.y - y;
+                const d2 = dx * dx + dy * dy;
+                if (d2 < best) {
+                    best = d2;
+                    nearest = agent;
+                }
+            }
+            return nearest;
+        }
+
+        function drawAgentTrace(agent, x0, y0, selected) {
+            const wrapped = Math.abs(agent.position.x - x0) > width * 0.5 ||
+                Math.abs(agent.position.y - y0) > height * 0.5;
+            const speed = agent.velocity.mag() / MAX_SPEED;
+            const alpha = selected ? 130 : 34 + speed * 58;
+            strokeWeight(selected ? 1.8 : 1.05);
+            stroke(TRAIL[0], TRAIL[1], TRAIL[2], alpha);
+
+            if (wrapped) point(agent.position.x, agent.position.y);
+            else line(x0, y0, agent.position.x, agent.position.y);
+        }
+
+        function drawProbe(agent, acceleration) {
+            const field = fieldForce(agent.position);
+            const dot = alignment(agent.velocity, field);
+            const probeColor = alignmentColor(dot);
+            const x = agent.position.x;
+            const y = agent.position.y;
+
+            noFill();
+            stroke(probeColor[0], probeColor[1], probeColor[2], 72);
+            strokeWeight(1);
+            circle(x, y, 34);
+
+            blendMode(ADD);
+            noStroke();
+            fill(probeColor[0], probeColor[1], probeColor[2], 220);
+            circle(x, y, 6.5);
+            fill(probeColor[0], probeColor[1], probeColor[2], 46);
+            circle(x, y, 26);
+            blendMode(BLEND);
+
+            drawArrow(x, y, agent.velocity, VEL_ARROW, [125, 230, 255, 214], 'v');
+            drawArrow(x, y, acceleration, ACC_ARROW, [232, 244, 238, 184], 'a');
+        }
+
+        function alignment(velocity, field) {
+            if (velocity.magSq() < 0.0001 || field.magSq() < 0.0001) return 0;
+            return velocity.copy().normalize().dot(field.copy().normalize());
+        }
+
+        function alignmentColor(dot) {
+            const neutral = [232, 244, 238];
+            const t = constrain(abs(dot), 0, 1);
+            const target = dot >= 0 ? FIELD : FIGHT;
+            return [
+                lerp(neutral[0], target[0], t),
+                lerp(neutral[1], target[1], t),
+                lerp(neutral[2], target[2], t)
+            ];
+        }
+
+        function drawArrow(x, y, vector, scale, rgba, label) {
+            const v = vector.copy().mult(scale);
+            if (v.magSq() < 0.25) return;
+
+            const x2 = x + v.x;
+            const y2 = y + v.y;
+            const angle = atan2(v.y, v.x);
+            const head = constrain(v.mag() * 0.22, 5, 10);
+
+            stroke(rgba[0], rgba[1], rgba[2], rgba[3]);
+            strokeWeight(1.4);
+            line(x, y, x2, y2);
+            noStroke();
+            fill(rgba[0], rgba[1], rgba[2], rgba[3]);
+            triangle(
+                x2, y2,
+                x2 - cos(angle - 0.55) * head, y2 - sin(angle - 0.55) * head,
+                x2 - cos(angle + 0.55) * head, y2 - sin(angle + 0.55) * head
+            );
+
+            noStroke();
+            fill(rgba[0], rgba[1], rgba[2], 168);
+            textSize(10);
+            text(label, x2 + cos(angle) * 5, y2 + sin(angle) * 5);
+        }
+
+        function drawReadout(probe, acceleration) {
+            if (!probe) return;
+
+            const field = fieldForce(probe.position);
+            const dot = alignment(probe.velocity, field);
+            const aligned = dot >= 0;
+            const color = aligned ? FIELD : FIGHT;
+
+            noStroke();
+            fill(GROUND[0], GROUND[1], GROUND[2], 142);
+            rect(16, 16, 218, 82, 2);
+
+            fill(INK[0], INK[1], INK[2], 184);
+            textSize(11);
+            text('probe', 28, 38);
+            text('speed  ' + nf(probe.velocity.mag(), 1, 2), 28, 58);
+            text('accel  ' + nf(acceleration.mag(), 1, 3), 28, 76);
+
+            fill(color[0], color[1], color[2], 220);
+            text('v dot field  ' + nf(dot, 1, 2), 112, 38);
+            rect(112, 48, map(dot, -1, 1, 0, 104), 5, 1);
+
+            stroke(INK[0], INK[1], INK[2], 42);
+            strokeWeight(1);
+            line(164, 48, 164, 53);
+        }
+
+        // Extension hooks:
+        // nbodyForce(self, others) -> sum of rHat * G*m / (r*r + eps*eps)
+        // seekForce(self, target) -> desired minus velocity
+        // relaxConstraints(points) -> iterative distance-constraint pass
+    </script>
+</body>
+
+</html>
