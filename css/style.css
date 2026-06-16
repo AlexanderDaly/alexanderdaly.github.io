@@ -495,6 +495,18 @@ nav a.active {
     font-size: 5.4rem;
 }
 
+/* The accretion disk renders bright particles directly behind this copy, so
+   give the supporting text a dark halo to keep it legible over hot pixels. */
+.hero.hero--landing .subtitle,
+.hero.hero--landing .hero-readout,
+.hero.hero--landing .hero-hint {
+    text-shadow: 0 1px 2px rgba(3, 2, 6, 0.92), 0 0 14px rgba(3, 2, 6, 0.78);
+}
+
+.hero.hero--landing .subtitle {
+    color: #d9c6cb;
+}
+
 .hero .hero-readout {
     font-family: var(--font-mono);
     font-size: 0.72rem;

@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2D Force Engine</title>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"
+        onerror="window.__p5Failed = true;"></script>
     <style>
         :root {
             --bg: #03050a;
@@ -35,11 +36,46 @@
         canvas {
             display: block;
         }
+
+        #boot {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 24px;
+            text-align: center;
+            font-size: 0.82rem;
+            letter-spacing: 0.6px;
+            color: rgba(206, 164, 74, 0.92);
+            background: var(--bg);
+            transition: opacity 0.4s ease;
+        }
+
+        #boot.is-error {
+            color: rgba(233, 238, 230, 0.86);
+        }
+
+        #boot .boot-sub {
+            max-width: 30ch;
+            font-size: 0.72rem;
+            color: rgba(233, 238, 230, 0.55);
+        }
+
+        #boot a {
+            color: rgba(96, 245, 190, 0.92);
+        }
     </style>
 </head>
 
 <body>
     <main id="sketch" aria-label="2D force engine showing accumulated forces on moving bodies."></main>
+    <div id="boot" role="status" aria-live="polite">
+        <span class="boot-msg">Loading force engine&hellip;</span>
+        <span class="boot-sub"></span>
+    </div>
 
     <script>
         const G = 0.24;
@@ -314,6 +350,12 @@
             strokeCap(ROUND);
             textFont('ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace');
             world = new World(currentScene);
+
+            const boot = document.getElementById('boot');
+            if (boot) {
+                boot.style.opacity = '0';
+                setTimeout(() => boot.remove(), 450);
+            }
         }
 
         function windowResized() {
@@ -681,6 +723,42 @@
         }
 
         // futureTerrainBrush(point) -> paint scalar/contact data later
+    </script>
+
+    <script>
+        // Graceful fallback: if the p5.js CDN is blocked or never executes a
+        // sketch, replace the loading state with a clear, actionable message
+        // instead of leaving the viewer staring at a blank panel.
+        (function () {
+            const boot = document.getElementById('boot');
+            if (!boot) return;
+
+            function showError() {
+                if (!document.body.contains(boot)) return;
+                if (document.querySelector('#sketch canvas')) return;
+                boot.classList.add('is-error');
+                const msg = boot.querySelector('.boot-msg');
+                const sub = boot.querySelector('.boot-sub');
+                if (msg) msg.textContent = 'Force engine unavailable';
+                if (sub) {
+                    sub.innerHTML = 'The p5.js library failed to load. ' +
+                        '<a href="">Retry</a> or check your connection.';
+                    const link = sub.querySelector('a');
+                    if (link) link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        location.reload();
+                    });
+                }
+            }
+
+            if (window.__p5Failed || typeof p5 === 'undefined') {
+                showError();
+            } else {
+                // p5 is present but the sketch may still be booting; give it a
+                // moment, then surface an error only if nothing rendered.
+                setTimeout(showError, 6000);
+            }
+        })();
     </script>
 </body>
 
