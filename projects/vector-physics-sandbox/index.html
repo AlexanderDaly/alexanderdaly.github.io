@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vector Physics Sandbox</title>
+    <title>2D Force Engine</title>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
     <style>
         :root {
-            --bg: #04060a;
-            --text: #e8f4ee;
+            --bg: #03050a;
+            --ink: #e9eee6;
         }
 
         * {
@@ -23,7 +23,7 @@
             margin: 0;
             overflow: hidden;
             background: var(--bg);
-            color: var(--text);
+            color: var(--ink);
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
 
@@ -39,235 +39,648 @@
 </head>
 
 <body>
-    <main id="sketch" aria-label="Vector physics sandbox showing field-driven agents and a probe overlay."></main>
+    <main id="sketch" aria-label="2D force engine showing accumulated forces on moving bodies."></main>
 
     <script>
-        const NUM_AGENTS = 360;
-        const FIELD_SCALE = 0.0042;
-        const FIELD_STRENGTH = 0.055;
-        const MAX_SPEED = 2.35;
+        const G = 0.24;
+        const GRAVITY = new p5.Vector(0, 0.078);
+        const EPS = 44;
+        const R_MIN = 1500;
+        const R_MAX = 90000;
+        const MAX_SPEED = 7.5;
+        const DRAG_C = 0.018;
+        const FRICTION_MU = 0.16;
+        const WIND = new p5.Vector(0.19, -0.015);
+        const NUM_BODIES = 42;
+        const RADIUS_K = 2.25;
         const TRAIL_ALPHA = 18;
-        const VEL_ARROW = 18;
-        const ACC_ARROW = 1800;
+        const ARROW_K = 32;
 
-        const GROUND = [4, 6, 10];
-        const TRAIL = [125, 230, 255];
-        const FIELD = [96, 245, 190];
-        const FIGHT = [255, 88, 94];
-        const INK = [232, 244, 238];
+        const BG = [3, 5, 10];
+        const GOLD = [206, 164, 74];
+        const INK = [233, 238, 230];
+        const BODY_CORE = [118, 226, 255];
+        const BODY_ALT = [111, 241, 187];
+        const PANEL = [5, 8, 13];
+        const FORCE_COLORS = {
+            weight: [124, 177, 255],
+            wind: [105, 238, 196],
+            drag: [197, 146, 255],
+            friction: [255, 189, 96],
+            attraction: [255, 102, 124],
+            net: [246, 244, 214],
+            velocity: [125, 230, 255]
+        };
 
-        let agents = [];
+        const SCENES = [
+            { key: 'sandbox', label: 'Forces Sandbox' },
+            { key: 'orbital', label: 'Orbital' },
+            { key: 'materials', label: 'Trial of Materials' }
+        ];
 
-        class Agent {
-            constructor(x, y) {
+        const TOOLS = [
+            { key: 'wind', label: 'Wind' },
+            { key: 'drag', label: 'Drag' },
+            { key: 'friction', label: 'Friction' }
+        ];
+
+        let world;
+        let currentScene = 'sandbox';
+        let currentTool = 'wind';
+        let toolbarItems = [];
+        let dragZone = null;
+        let velocityDrag = null;
+
+        class Body {
+            constructor(x, y, mass, velocity, tone) {
                 this.position = createVector(x, y);
-                this.velocity = p5.Vector.random2D().mult(random(0.25, MAX_SPEED));
+                this.velocity = velocity ? velocity.copy() : createVector(0, 0);
                 this.acceleration = createVector(0, 0);
-                this.maxSpeed = MAX_SPEED;
+                this.mass = mass;
+                this.radius = sqrt(this.mass) * RADIUS_K;
+                this.tone = tone || BODY_CORE;
+                this.previous = this.position.copy();
+                this.forceEntries = [];
+                this.forceSums = {};
+                this.netForce = createVector(0, 0);
+                this.lastAcceleration = createVector(0, 0);
             }
 
             applyForce(f) {
-                this.acceleration.add(f);
+                this.acceleration.add(f.copy().div(this.mass));
             }
 
             update() {
+                this.previous = this.position.copy();
                 this.velocity.add(this.acceleration);
-                this.velocity.limit(this.maxSpeed);
+                this.velocity.limit(MAX_SPEED);
                 this.position.add(this.velocity);
                 this.acceleration.mult(0);
-                this.wrap();
-            }
-
-            wrap() {
-                if (this.position.x < 0) this.position.x += width;
-                else if (this.position.x >= width) this.position.x -= width;
-                if (this.position.y < 0) this.position.y += height;
-                else if (this.position.y >= height) this.position.y -= height;
             }
         }
 
-        function fieldForce(pos) {
-            const angle = noise(pos.x * FIELD_SCALE, pos.y * FIELD_SCALE) * TWO_PI * 2;
-            return p5.Vector.fromAngle(angle).mult(FIELD_STRENGTH);
+        class Attractor {
+            constructor(x, y, mass) {
+                this.position = createVector(x, y);
+                this.mass = mass;
+                this.radius = sqrt(this.mass) * 0.34;
+            }
+        }
+
+        class Zone {
+            constructor(type, x, y, w, h) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.w = w;
+                this.h = h;
+            }
+
+            contains(pos) {
+                return pos.x >= this.x && pos.x <= this.x + this.w &&
+                    pos.y >= this.y && pos.y <= this.y + this.h;
+            }
+        }
+
+        class World {
+            constructor(sceneKey) {
+                this.sceneKey = sceneKey;
+                this.bodies = [];
+                this.zones = [];
+                this.attractors = [];
+                this.probe = null;
+                this.paused = false;
+                this.showGrid = true;
+                this.useGravity = true;
+                this.loadScene(sceneKey);
+            }
+
+            loadScene(sceneKey) {
+                this.sceneKey = sceneKey;
+                this.bodies = [];
+                this.zones = [];
+                this.attractors = [];
+                this.probe = null;
+                this.paused = false;
+                this.useGravity = true;
+
+                if (sceneKey === 'orbital') this.seedOrbital();
+                else if (sceneKey === 'materials') this.seedMaterials();
+                else this.seedSandbox();
+
+                background(BG[0], BG[1], BG[2]);
+            }
+
+            seedSandbox() {
+                this.useGravity = true;
+                this.zones.push(new Zone('wind', width * 0.08, height * 0.17, width * 0.28, height * 0.24));
+                this.zones.push(new Zone('drag', width * 0.46, height * 0.28, width * 0.36, height * 0.24));
+                this.zones.push(new Zone('friction', width * 0.08, height * 0.72, width * 0.78, height * 0.12));
+
+                for (let i = 0; i < NUM_BODIES; i++) {
+                    const mass = random(5, 68);
+                    const x = random(width * 0.12, width * 0.88);
+                    const y = random(height * 0.06, height * 0.46);
+                    const velocity = p5.Vector.random2D().mult(random(0.2, 2.2));
+                    const tone = lerpColorArray(BODY_CORE, BODY_ALT, random(0.15, 0.85));
+                    this.bodies.push(new Body(x, y, mass, velocity, tone));
+                }
+            }
+
+            seedOrbital() {
+                this.useGravity = false;
+                this.paused = true;
+                this.attractors.push(new Attractor(width * 0.39, height * 0.50, 2300));
+                this.attractors.push(new Attractor(width * 0.64, height * 0.43, 1700));
+                this.attractors.push(new Attractor(width * 0.54, height * 0.67, 1050));
+
+                for (let i = 0; i < 72; i++) {
+                    const host = random(this.attractors);
+                    const r = random(82, min(width, height) * 0.34);
+                    const a = random(TWO_PI);
+                    const pos = p5.Vector.fromAngle(a).mult(r).add(host.position);
+                    const tangent = createVector(-sin(a), cos(a));
+                    const speed = sqrt(max(0.01, G * host.mass / max(r + EPS * 0.45, 1))) * random(0.72, 1.18);
+                    const mass = random(1.4, 5.2);
+                    this.bodies.push(new Body(pos.x, pos.y, mass, tangent.mult(speed), [123, 229, 255]));
+                }
+            }
+
+            seedMaterials() {
+                this.useGravity = true;
+                const x = width * 0.44;
+                const y = height * 0.08;
+                this.bodies.push(new Body(x - 34, y, 9, createVector(0, 0), [118, 226, 255]));
+                this.bodies.push(new Body(x + 34, y, 81, createVector(0, 0), [255, 207, 122]));
+                this.zones.push(new Zone('wind', width * 0.08, height * 0.20, width * 0.66, height * 0.14));
+                this.zones.push(new Zone('drag', width * 0.18, height * 0.43, width * 0.64, height * 0.19));
+                this.zones.push(new Zone('friction', width * 0.10, height * 0.76, width * 0.76, height * 0.11));
+
+                for (let i = 0; i < 18; i++) {
+                    const mass = random(4, 26);
+                    const body = new Body(
+                        random(width * 0.18, width * 0.78),
+                        random(height * 0.02, height * 0.16),
+                        mass,
+                        createVector(random(-0.35, 0.35), random(-0.1, 0.4)),
+                        [96, 245, 190]
+                    );
+                    this.bodies.push(body);
+                }
+            }
+
+            step() {
+                for (const body of this.bodies) {
+                    const forces = this.computeForces(body);
+                    this.captureForces(body, forces);
+                    for (const entry of forces) body.applyForce(entry.vector);
+                    body.update();
+                }
+            }
+
+            refreshForces() {
+                for (const body of this.bodies) this.captureForces(body, this.computeForces(body));
+            }
+
+            computeForces(body) {
+                const forces = [];
+
+                if (this.useGravity) {
+                    forces.push({ type: 'weight', vector: GRAVITY.copy().mult(body.mass) });
+                }
+
+                for (const zone of this.zones) {
+                    if (!zone.contains(body.position)) continue;
+                    if (zone.type === 'wind') {
+                        forces.push({ type: 'wind', vector: WIND.copy() });
+                    } else if (zone.type === 'drag' && body.velocity.magSq() > 0.0001) {
+                        const drag = body.velocity.copy().normalize().mult(-1)
+                            .mult(DRAG_C * body.velocity.magSq());
+                        forces.push({ type: 'drag', vector: drag });
+                    } else if (zone.type === 'friction' && body.velocity.magSq() > 0.0001) {
+                        const friction = body.velocity.copy().normalize().mult(-1).mult(FRICTION_MU);
+                        forces.push({ type: 'friction', vector: friction });
+                    }
+                }
+
+                for (const attractor of this.attractors) {
+                    const offset = p5.Vector.sub(attractor.position, body.position);
+                    if (offset.magSq() < 0.0001) continue;
+                    const distSq = offset.magSq();
+                    const denom = constrain(distSq + EPS * EPS, R_MIN, R_MAX);
+                    const magnitude = G * attractor.mass * body.mass / denom;
+                    const attraction = offset.copy().normalize().mult(magnitude);
+                    forces.push({ type: 'attraction', vector: attraction });
+                }
+
+                return forces.filter(entry => entry.vector.magSq() > 0.000001);
+            }
+
+            captureForces(body, forces) {
+                const sums = {
+                    weight: createVector(0, 0),
+                    wind: createVector(0, 0),
+                    drag: createVector(0, 0),
+                    friction: createVector(0, 0),
+                    attraction: createVector(0, 0)
+                };
+                const net = createVector(0, 0);
+
+                for (const entry of forces) {
+                    sums[entry.type].add(entry.vector);
+                    net.add(entry.vector);
+                }
+
+                body.forceEntries = forces;
+                body.forceSums = sums;
+                body.netForce = net;
+                body.lastAcceleration = net.copy().div(body.mass);
+            }
+
+            addAttractor(x, y) {
+                this.attractors.push(new Attractor(x, y, this.sceneKey === 'orbital' ? 1500 : 950));
+            }
+
+            addZone(type, rect) {
+                if (rect.w < 14 || rect.h < 14) return;
+                this.zones.push(new Zone(type, rect.x, rect.y, rect.w, rect.h));
+            }
         }
 
         function setup() {
             const canvas = createCanvas(windowWidth, windowHeight);
             canvas.parent('sketch');
-            pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
+            pixelDensity(min(window.devicePixelRatio || 1, 2));
             strokeCap(ROUND);
             textFont('ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace');
-            seedAgents();
-            background(GROUND[0], GROUND[1], GROUND[2]);
+            world = new World(currentScene);
         }
 
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
-            seedAgents();
-            background(GROUND[0], GROUND[1], GROUND[2]);
-        }
-
-        function seedAgents() {
-            agents = [];
-            for (let i = 0; i < NUM_AGENTS; i++) {
-                agents.push(new Agent(random(width), random(height)));
-            }
+            world.loadScene(world.sceneKey);
         }
 
         function draw() {
             fadeTrails();
-            const probe = nearestAgent(mouseX, mouseY);
-            let probeAcceleration = createVector(0, 0);
+            if (world.showGrid) drawMeridianGrid();
+            drawZones();
+            drawAttractors();
 
-            blendMode(ADD);
-            for (const agent of agents) {
-                const x0 = agent.position.x;
-                const y0 = agent.position.y;
-                const force = fieldForce(agent.position);
-                if (agent === probe) probeAcceleration = force.copy();
+            if (world.paused) world.refreshForces();
+            else world.step();
 
-                agent.applyForce(force);
-                // Additional forces plug in here through agent.applyForce(...).
-                agent.update();
-                drawAgentTrace(agent, x0, y0, agent === probe);
+            drawTrails();
+            drawBodies();
+            if (world.probe) {
+                drawProbeArrows(world.probe);
+                drawProbePanel(world.probe);
             }
-
-            blendMode(BLEND);
-            if (probe) drawProbe(probe, probeAcceleration);
-            drawReadout(probe, probeAcceleration);
+            drawVelocityDrag();
+            drawZonePreview();
+            drawToolbar();
         }
 
         function fadeTrails() {
             blendMode(BLEND);
             noStroke();
-            fill(GROUND[0], GROUND[1], GROUND[2], TRAIL_ALPHA);
+            fill(BG[0], BG[1], BG[2], TRAIL_ALPHA);
             rect(0, 0, width, height);
         }
 
-        function nearestAgent(x, y) {
-            let nearest = null;
-            let best = Infinity;
-            for (const agent of agents) {
-                const dx = agent.position.x - x;
-                const dy = agent.position.y - y;
-                const d2 = dx * dx + dy * dy;
-                if (d2 < best) {
-                    best = d2;
-                    nearest = agent;
-                }
-            }
-            return nearest;
-        }
+        function drawMeridianGrid() {
+            const spacing = 64;
+            const cx = width * 0.5;
+            const cy = height * 0.5;
+            stroke(GOLD[0], GOLD[1], GOLD[2], 24);
+            strokeWeight(1);
 
-        function drawAgentTrace(agent, x0, y0, selected) {
-            const wrapped = Math.abs(agent.position.x - x0) > width * 0.5 ||
-                Math.abs(agent.position.y - y0) > height * 0.5;
-            const speed = agent.velocity.mag() / MAX_SPEED;
-            const alpha = selected ? 130 : 34 + speed * 58;
-            strokeWeight(selected ? 1.8 : 1.05);
-            stroke(TRAIL[0], TRAIL[1], TRAIL[2], alpha);
-
-            if (wrapped) point(agent.position.x, agent.position.y);
-            else line(x0, y0, agent.position.x, agent.position.y);
-        }
-
-        function drawProbe(agent, acceleration) {
-            const field = fieldForce(agent.position);
-            const dot = alignment(agent.velocity, field);
-            const probeColor = alignmentColor(dot);
-            const x = agent.position.x;
-            const y = agent.position.y;
+            for (let x = cx % spacing; x < width; x += spacing) line(x, 0, x, height);
+            for (let y = cy % spacing; y < height; y += spacing) line(0, y, width, y);
 
             noFill();
-            stroke(probeColor[0], probeColor[1], probeColor[2], 72);
-            strokeWeight(1);
-            circle(x, y, 34);
+            for (let r = spacing; r < max(width, height); r += spacing * 1.6) {
+                stroke(GOLD[0], GOLD[1], GOLD[2], 13);
+                circle(cx, cy, r * 2);
+            }
+        }
 
+        function drawZones() {
+            for (const zone of world.zones) {
+                const c = FORCE_COLORS[zone.type];
+                noStroke();
+                fill(c[0], c[1], c[2], zone.type === 'wind' ? 24 : 18);
+                rect(zone.x, zone.y, zone.w, zone.h, 2);
+                stroke(c[0], c[1], c[2], 62);
+                strokeWeight(1);
+                noFill();
+                rect(zone.x + 0.5, zone.y + 0.5, zone.w - 1, zone.h - 1, 2);
+
+                noStroke();
+                fill(c[0], c[1], c[2], 148);
+                textSize(10);
+                text(zone.type, zone.x + 8, zone.y + 16);
+            }
+        }
+
+        function drawAttractors() {
             blendMode(ADD);
-            noStroke();
-            fill(probeColor[0], probeColor[1], probeColor[2], 220);
-            circle(x, y, 6.5);
-            fill(probeColor[0], probeColor[1], probeColor[2], 46);
-            circle(x, y, 26);
+            for (const attractor of world.attractors) {
+                const r = constrain(attractor.radius, 16, 34);
+                const x = attractor.position.x;
+                const y = attractor.position.y;
+                noStroke();
+                fill(FORCE_COLORS.attraction[0], FORCE_COLORS.attraction[1], FORCE_COLORS.attraction[2], 34);
+                circle(x, y, r * 3.4);
+                fill(GOLD[0], GOLD[1], GOLD[2], 152);
+                circle(x, y, r);
+                noFill();
+                stroke(GOLD[0], GOLD[1], GOLD[2], 118);
+                strokeWeight(1);
+                circle(x, y, r * 1.9);
+            }
             blendMode(BLEND);
-
-            drawArrow(x, y, agent.velocity, VEL_ARROW, [125, 230, 255, 214], 'v');
-            drawArrow(x, y, acceleration, ACC_ARROW, [232, 244, 238, 184], 'a');
         }
 
-        function alignment(velocity, field) {
-            if (velocity.magSq() < 0.0001 || field.magSq() < 0.0001) return 0;
-            return velocity.copy().normalize().dot(field.copy().normalize());
+        function drawTrails() {
+            blendMode(ADD);
+            for (const body of world.bodies) {
+                const speed = body.velocity.mag() / MAX_SPEED;
+                stroke(body.tone[0], body.tone[1], body.tone[2], 38 + speed * 72);
+                strokeWeight(constrain(body.radius * 0.22, 1, 3.2));
+                line(body.previous.x, body.previous.y, body.position.x, body.position.y);
+            }
+            blendMode(BLEND);
         }
 
-        function alignmentColor(dot) {
-            const neutral = [232, 244, 238];
-            const t = constrain(abs(dot), 0, 1);
-            const target = dot >= 0 ? FIELD : FIGHT;
+        function drawBodies() {
+            blendMode(ADD);
+            for (const body of world.bodies) {
+                const selected = body === world.probe;
+                const r = body.radius;
+                noStroke();
+                fill(body.tone[0], body.tone[1], body.tone[2], selected ? 72 : 30);
+                circle(body.position.x, body.position.y, r * (selected ? 3.7 : 2.7));
+                fill(body.tone[0], body.tone[1], body.tone[2], selected ? 232 : 178);
+                circle(body.position.x, body.position.y, r * 2);
+                fill(255, 252, 226, selected ? 240 : 150);
+                circle(body.position.x, body.position.y, max(2.4, r * 0.45));
+            }
+            blendMode(BLEND);
+        }
+
+        function drawProbeArrows(body) {
+            const p = body.position;
+            const sums = body.forceSums;
+            const forceOrder = ['weight', 'wind', 'drag', 'friction', 'attraction'];
+            let lane = 0;
+
+            for (const type of forceOrder) {
+                const v = sums[type];
+                if (!v || v.magSq() < 0.000001) continue;
+                drawArrow(p, v, FORCE_COLORS[type], type[0], lane++);
+            }
+
+            drawArrow(p, body.netForce, FORCE_COLORS.net, 'F', lane++);
+            drawArrow(p, body.velocity, FORCE_COLORS.velocity, 'v', lane, 0.72);
+        }
+
+        function drawArrow(origin, vector, color, label, lane, extraScale) {
+            const display = vector.copy().mult(ARROW_K * (extraScale || 1));
+            if (display.magSq() < 0.5) return;
+            display.limit(156);
+
+            const perp = createVector(-display.y, display.x);
+            if (perp.magSq() > 0.001) perp.normalize().mult((lane - 2.2) * 3.2);
+            const start = origin.copy().add(perp);
+            const end = start.copy().add(display);
+            const angle = atan2(display.y, display.x);
+            const head = constrain(display.mag() * 0.2, 5, 10);
+
+            stroke(color[0], color[1], color[2], 214);
+            strokeWeight(1.55);
+            line(start.x, start.y, end.x, end.y);
+            noStroke();
+            fill(color[0], color[1], color[2], 226);
+            triangle(
+                end.x, end.y,
+                end.x - cos(angle - 0.55) * head, end.y - sin(angle - 0.55) * head,
+                end.x - cos(angle + 0.55) * head, end.y - sin(angle + 0.55) * head
+            );
+            textSize(10);
+            text(label, end.x + cos(angle) * 6, end.y + sin(angle) * 6);
+        }
+
+        function drawProbePanel(body) {
+            const panelW = min(360, width - 28);
+            const panelH = 256;
+            const x = width - panelW - 16;
+            const y = 16;
+
+            noStroke();
+            fill(PANEL[0], PANEL[1], PANEL[2], 224);
+            rect(x, y, panelW, panelH, 4);
+            stroke(GOLD[0], GOLD[1], GOLD[2], 72);
+            noFill();
+            rect(x + 0.5, y + 0.5, panelW - 1, panelH - 1, 4);
+
+            let yy = y + 24;
+            drawPanelText('PROBE', x + 16, yy, INK, 11);
+            yy += 22;
+            drawPanelText('mass          ' + nf(body.mass, 1, 2), x + 16, yy, INK, 11);
+            yy += 18;
+
+            for (const type of ['weight', 'wind', 'drag', 'friction', 'attraction']) {
+                const v = body.forceSums[type];
+                if (!v || v.magSq() < 0.000001) continue;
+                drawPanelText(padRight(type, 13) + fmtVec(v), x + 16, yy, FORCE_COLORS[type], 11);
+                yy += 18;
+            }
+
+            yy += 4;
+            drawPanelText('net force     ' + fmtVec(body.netForce), x + 16, yy, FORCE_COLORS.net, 11);
+            yy += 18;
+            drawPanelText('acceleration  ' + fmtVec(body.lastAcceleration), x + 16, yy, INK, 11);
+            yy += 18;
+            drawPanelText('velocity      ' + fmtVec(body.velocity), x + 16, yy, FORCE_COLORS.velocity, 11);
+        }
+
+        function drawPanelText(label, x, y, color, size) {
+            noStroke();
+            fill(color[0], color[1], color[2], 218);
+            textSize(size);
+            text(label, x, y);
+        }
+
+        function drawToolbar() {
+            toolbarItems = [];
+            const pad = 14;
+            let x = 16;
+            let y = height - 44;
+
+            x = toolbarButton(x, y, world.paused ? 'Play' : 'Pause', 'pause', world.paused);
+            x = toolbarButton(x, y, 'Reset', 'reset', false);
+            x = toolbarButton(x, y, 'Grid', 'grid', world.showGrid);
+
+            x += 10;
+            for (const scene of SCENES) {
+                x = toolbarButton(x, y, scene.label, 'scene:' + scene.key, world.sceneKey === scene.key);
+            }
+
+            x += 10;
+            for (let i = 0; i < TOOLS.length; i++) {
+                const tool = TOOLS[i];
+                x = toolbarButton(x, y, (i + 1) + ' ' + tool.label, 'tool:' + tool.key, currentTool === tool.key);
+            }
+
+            noStroke();
+            fill(INK[0], INK[1], INK[2], 112);
+            textSize(10);
+            text('click body: probe   click empty: attractor   drag empty: zone', pad + 2, y - 10);
+        }
+
+        function toolbarButton(x, y, label, action, active) {
+            const w = max(54, textWidth(label) + 22);
+            toolbarItems.push({ x, y, w, h: 28, action });
+            stroke(active ? FORCE_COLORS.wind[0] : GOLD[0], active ? FORCE_COLORS.wind[1] : GOLD[1],
+                active ? FORCE_COLORS.wind[2] : GOLD[2], active ? 168 : 78);
+            strokeWeight(1);
+            fill(PANEL[0], PANEL[1], PANEL[2], active ? 218 : 178);
+            rect(x, y, w, 28, 4);
+            noStroke();
+            fill(INK[0], INK[1], INK[2], active ? 232 : 156);
+            textSize(11);
+            text(label, x + 11, y + 18);
+            return x + w + 7;
+        }
+
+        function drawZonePreview() {
+            if (!dragZone) return;
+            const rect = normalizedRect(dragZone.x, dragZone.y, mouseX, mouseY);
+            const c = FORCE_COLORS[dragZone.type];
+            noStroke();
+            fill(c[0], c[1], c[2], 24);
+            rect(rect.x, rect.y, rect.w, rect.h, 2);
+            stroke(c[0], c[1], c[2], 128);
+            strokeWeight(1);
+            noFill();
+            rect(rect.x, rect.y, rect.w, rect.h, 2);
+        }
+
+        function drawVelocityDrag() {
+            if (!velocityDrag) return;
+            const body = velocityDrag.body;
+            const vector = createVector(mouseX - body.position.x, mouseY - body.position.y);
+            stroke(FORCE_COLORS.velocity[0], FORCE_COLORS.velocity[1], FORCE_COLORS.velocity[2], 160);
+            strokeWeight(1.4);
+            line(body.position.x, body.position.y, mouseX, mouseY);
+            noStroke();
+            fill(FORCE_COLORS.velocity[0], FORCE_COLORS.velocity[1], FORCE_COLORS.velocity[2], 170);
+            textSize(10);
+            text('release: set velocity ' + fmtVec(vector.mult(0.035)), mouseX + 10, mouseY - 8);
+        }
+
+        function mousePressed() {
+            if (handleToolbar(mouseX, mouseY)) return;
+            if (world.probe && overProbePanel(mouseX, mouseY)) return;
+
+            const body = bodyAt(mouseX, mouseY);
+            if (body) {
+                world.probe = body;
+                if (world.sceneKey === 'orbital' && world.paused) {
+                    velocityDrag = { body };
+                }
+                return;
+            }
+
+            dragZone = { x: mouseX, y: mouseY, type: currentTool };
+        }
+
+        function mouseReleased() {
+            if (velocityDrag) {
+                const body = velocityDrag.body;
+                const v = createVector(mouseX - body.position.x, mouseY - body.position.y).mult(0.035);
+                if (v.mag() > 0.08) body.velocity = v.limit(MAX_SPEED);
+                velocityDrag = null;
+                return;
+            }
+
+            if (!dragZone) return;
+            const rect = normalizedRect(dragZone.x, dragZone.y, mouseX, mouseY);
+            if (rect.w < 8 && rect.h < 8) world.addAttractor(mouseX, mouseY);
+            else world.addZone(dragZone.type, rect);
+            dragZone = null;
+        }
+
+        function keyPressed() {
+            if (key === ' ') world.paused = !world.paused;
+            else if (key === 'r' || key === 'R') world.loadScene(world.sceneKey);
+            else if (key === 'g' || key === 'G') world.showGrid = !world.showGrid;
+            else if (key === '1') currentTool = 'wind';
+            else if (key === '2') currentTool = 'drag';
+            else if (key === '3') currentTool = 'friction';
+        }
+
+        function handleToolbar(x, y) {
+            for (const item of toolbarItems) {
+                if (x < item.x || x > item.x + item.w || y < item.y || y > item.y + item.h) continue;
+                if (item.action === 'pause') world.paused = !world.paused;
+                else if (item.action === 'reset') world.loadScene(world.sceneKey);
+                else if (item.action === 'grid') world.showGrid = !world.showGrid;
+                else if (item.action.startsWith('scene:')) {
+                    currentScene = item.action.slice(6);
+                    world.loadScene(currentScene);
+                } else if (item.action.startsWith('tool:')) {
+                    currentTool = item.action.slice(5);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function bodyAt(x, y) {
+            let best = null;
+            let bestD = Infinity;
+            for (const body of world.bodies) {
+                const d = dist(x, y, body.position.x, body.position.y);
+                if (d <= body.radius + 8 && d < bestD) {
+                    best = body;
+                    bestD = d;
+                }
+            }
+            return best;
+        }
+
+        function overProbePanel(x, y) {
+            const panelW = min(360, width - 28);
+            return x >= width - panelW - 16 && x <= width - 16 && y >= 16 && y <= 272;
+        }
+
+        function normalizedRect(x1, y1, x2, y2) {
+            const x = min(x1, x2);
+            const y = min(y1, y2);
+            return { x, y, w: abs(x2 - x1), h: abs(y2 - y1) };
+        }
+
+        function fmtVec(v) {
+            return '(' + nf(v.x, 1, 2) + ', ' + nf(v.y, 1, 2) + ')';
+        }
+
+        function padRight(textValue, len) {
+            let out = textValue;
+            while (out.length < len) out += ' ';
+            return out;
+        }
+
+        function lerpColorArray(a, b, t) {
             return [
-                lerp(neutral[0], target[0], t),
-                lerp(neutral[1], target[1], t),
-                lerp(neutral[2], target[2], t)
+                lerp(a[0], b[0], t),
+                lerp(a[1], b[1], t),
+                lerp(a[2], b[2], t)
             ];
         }
 
-        function drawArrow(x, y, vector, scale, rgba, label) {
-            const v = vector.copy().mult(scale);
-            if (v.magSq() < 0.25) return;
-
-            const x2 = x + v.x;
-            const y2 = y + v.y;
-            const angle = atan2(v.y, v.x);
-            const head = constrain(v.mag() * 0.22, 5, 10);
-
-            stroke(rgba[0], rgba[1], rgba[2], rgba[3]);
-            strokeWeight(1.4);
-            line(x, y, x2, y2);
-            noStroke();
-            fill(rgba[0], rgba[1], rgba[2], rgba[3]);
-            triangle(
-                x2, y2,
-                x2 - cos(angle - 0.55) * head, y2 - sin(angle - 0.55) * head,
-                x2 - cos(angle + 0.55) * head, y2 - sin(angle + 0.55) * head
-            );
-
-            noStroke();
-            fill(rgba[0], rgba[1], rgba[2], 168);
-            textSize(10);
-            text(label, x2 + cos(angle) * 5, y2 + sin(angle) * 5);
-        }
-
-        function drawReadout(probe, acceleration) {
-            if (!probe) return;
-
-            const field = fieldForce(probe.position);
-            const dot = alignment(probe.velocity, field);
-            const aligned = dot >= 0;
-            const color = aligned ? FIELD : FIGHT;
-
-            noStroke();
-            fill(GROUND[0], GROUND[1], GROUND[2], 142);
-            rect(16, 16, 218, 82, 2);
-
-            fill(INK[0], INK[1], INK[2], 184);
-            textSize(11);
-            text('probe', 28, 38);
-            text('speed  ' + nf(probe.velocity.mag(), 1, 2), 28, 58);
-            text('accel  ' + nf(acceleration.mag(), 1, 3), 28, 76);
-
-            fill(color[0], color[1], color[2], 220);
-            text('v dot field  ' + nf(dot, 1, 2), 112, 38);
-            rect(112, 48, map(dot, -1, 1, 0, 104), 5, 1);
-
-            stroke(INK[0], INK[1], INK[2], 42);
-            strokeWeight(1);
-            line(164, 48, 164, 53);
-        }
-
-        // Extension hooks:
-        // nbodyForce(self, others) -> sum of rHat * G*m / (r*r + eps*eps)
-        // seekForce(self, target) -> desired minus velocity
-        // relaxConstraints(points) -> iterative distance-constraint pass
+        // futureTerrainBrush(point) -> paint scalar/contact data later
     </script>
 </body>
 
