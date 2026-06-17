@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+package golem.v1;
+
+option go_package = "github.com/golem-harness/server/gen/golem/v1;golemv1";
+
+// Phase 1 telemetry contract for sanitized, replayable trajectories from
+// operator-owned devices, controlled emulators, and explicitly consenting users.
+// Raw screenshots, raw XML dumps, credentials, and personal data are out of
+// scope for persistent storage.
+
+service TelemetryIngest {
+  rpc IngestFrame(IngestFrameRequest) returns (IngestFrameResponse);
+}
+
+message IngestFrameRequest {
+  TelemetryFrame frame = 1;
+}
+
+message IngestFrameResponse {
+  bool accepted = 1;
+  SanitizerDecision decision = 2;
+  repeated string reason_codes = 3;
+  string message = 4;
+}
+
+message TelemetryFrame {
+  string protocol_version = 1;
+  string trajectory_id = 2;
+  string frame_id = 3;
+  uint64 sequence_number = 4;
+  int64 event_time_unix_millis = 5;
+
+  DeviceContext device = 10;
+  AppContext app = 11;
+  AllowlistDecision allowlist_decision = 12;
+
+  UiTreeSnapshot ui_tree = 20;
+  IntentMetadata intent = 21;
+  ActionMetadata action = 22;
+  UiSettleMetadata ui_settle = 23;
+  ScreenshotReference screenshot = 24;
+
+  SanitizerMetadata sanitizer = 30;
+  SignatureEnvelope signature = 40;
+}
+
+message DeviceContext {
+  string device_id = 1;
+  int32 android_sdk_version = 2;
+  string build_fingerprint_hash = 3;
+  string redacted_build_metadata = 4;
+}
+
+message AppContext {
+  string foreground_package = 1;
+  string foreground_activity = 2;
+}
+
+message AllowlistDecision {
+  bool allowed = 1;
+  bool kill_switch_triggered = 2;
+  string reason_code = 3;
+  string policy_version = 4;
+}
+
+message UiTreeSnapshot {
+  string snapshot_id = 1;
+  repeated UiNode nodes = 2;
+}
+
+message UiNode {
+  string stable_node_id = 1;
+  Rect bounds = 2;
+  string class_name = 3;
+  string package_name = 4;
+  RedactedValue resource_id = 5;
+  RedactedValue text = 6;
+  RedactedValue content_description = 7;
+
+  bool clickable = 10;
+  bool enabled = 11;
+  bool focused = 12;
+  bool selected = 13;
+  bool checkable = 14;
+
+  repeated UiNode children = 20;
+
+  // Pre-storage only. These fields are allowed only inside bounded in-memory
+  // request scope before sanitizer processing. They must never cross the storage
+  // boundary and must not be logged.
+  string raw_text_pre_storage = 100;
+  string raw_content_description_pre_storage = 101;
+}
+
+message Rect {
+  int32 left = 1;
+  int32 top = 2;
+  int32 right = 3;
+  int32 bottom = 4;
+}
+
+message RedactedValue {
+  RedactionStatus status = 1;
+  string sha256 = 2;
+}
+
+enum RedactionStatus {
+  REDACTION_STATUS_UNSPECIFIED = 0;
+  REDACTION_STATUS_NONE = 1;
+  REDACTION_STATUS_HASHED = 2;
+  REDACTION_STATUS_REDACTED = 3;
+  REDACTION_STATUS_DROPPED = 4;
+}
+
+message IntentMetadata {
+  string intent_id = 1;
+  string operator_intent_hash = 2;
+  string target_package = 3;
+  string target_activity = 4;
+}
+
+message ActionMetadata {
+  string action_id = 1;
+  string action_type = 2;
+  string target_node_id = 3;
+  string arguments_hash = 4;
+}
+
+message UiSettleMetadata {
+  int32 requested_wait_millis = 1;
+  int32 observed_stable_millis = 2;
+  string settle_strategy = 3;
+}
+
+message ScreenshotReference {
+  string reference_id = 1;
+  string sha256 = 2;
+  int32 width = 3;
+  int32 height = 4;
+  repeated RedactionBox redaction_boxes = 5;
+}
+
+message RedactionBox {
+  Rect bounds = 1;
+  string reason_code = 2;
+}
+
+message SanitizerMetadata {
+  string sanitizer_version = 1;
+  SanitizerDecision decision = 2;
+  repeated string reason_codes = 3;
+  repeated string redaction_rules_applied = 4;
+  repeated string fields_dropped = 5;
+  string kill_switch_reason = 6;
+}
+
+enum SanitizerDecision {
+  SANITIZER_DECISION_UNSPECIFIED = 0;
+  SANITIZER_DECISION_ACCEPT = 1;
+  SANITIZER_DECISION_DROP = 2;
+  SANITIZER_DECISION_QUARANTINE = 3;
+}
+
+message SignatureEnvelope {
+  string algorithm = 1;
+  string key_id = 2;
+  bytes signature = 3;
+  int64 signed_at_unix_millis = 4;
+}

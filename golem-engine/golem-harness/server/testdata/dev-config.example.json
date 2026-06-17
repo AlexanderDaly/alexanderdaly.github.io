@@ -1,0 +1,26 @@
+{
+  "grpc_addr": "127.0.0.1:50051",
+  "http_addr": "127.0.0.1:8080",
+  "max_frame_bytes": 65536,
+  "max_frame_age_seconds": 120,
+  "allowed_packages": [
+    "com.example.safe"
+  ],
+  "sensitive_packages": [
+    "com.synthetic.bank",
+    "com.synthetic.medical"
+  ],
+  "devices": [
+    {
+      "device_id": "synthetic-device-001",
+      "key_id": "synthetic-dev-key-001",
+      "ed25519_public_key_b64": "GYduz/WWImGJdfUftb+e68+ISdC/r2Vcl7RDdBo0OVU="
+    }
+  ],
+  "storage": {
+    "jsonl_path": "../work/sanitized-frames.jsonl"
+  },
+  "mtls": {
+    "enabled": false
+  }
+}

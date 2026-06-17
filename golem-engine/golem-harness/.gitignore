@@ -1,0 +1,31 @@
+# Build output
+*.exe
+*.test
+*.out
+coverage.*
+dist/
+bin/
+
+# Runtime output and local state
+outputs/
+work/
+*.jsonl
+*.log
+*.pid
+
+# Local secrets and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+*.srl
+local*.json
+*.local.json
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
