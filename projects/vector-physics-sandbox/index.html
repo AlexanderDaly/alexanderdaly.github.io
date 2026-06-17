@@ -92,6 +92,13 @@
         const TRAIL_ALPHA = 18;
         const ARROW_K = 32;
 
+        // Collision + interaction tuning.
+        const WALL_RESTITUTION = 0.6;   // bounce energy kept against walls
+        const FLOOR_FRICTION = 0.86;    // horizontal damping on floor contact
+        const BODY_RESTITUTION = 0.46;  // bounce energy kept body-to-body
+        const COLLISION_PASSES = 2;     // relaxation iterations per frame
+        const MAX_BODIES = 150;         // spawn cap (keeps O(n^2) honest)
+
         const BG = [3, 5, 10];
         const GOLD = [206, 164, 74];
         const INK = [233, 238, 230];
@@ -115,6 +122,8 @@
         ];
 
         const TOOLS = [
+            { key: 'spawn', label: 'Spawn' },
+            { key: 'attractor', label: 'Attractor' },
             { key: 'wind', label: 'Wind' },
             { key: 'drag', label: 'Drag' },
             { key: 'friction', label: 'Friction' }
@@ -122,10 +131,11 @@
 
         let world;
         let currentScene = 'sandbox';
-        let currentTool = 'wind';
+        let currentTool = 'spawn';
         let toolbarItems = [];
         let dragZone = null;
-        let velocityDrag = null;
+        let grab = null;
+        let spawnDrag = null;
 
         class Body {
             constructor(x, y, mass, velocity, tone) {
@@ -140,6 +150,7 @@
                 this.forceSums = {};
                 this.netForce = createVector(0, 0);
                 this.lastAcceleration = createVector(0, 0);
+                this.grabbed = false;
             }
 
             applyForce(f) {
@@ -188,6 +199,8 @@
                 this.paused = false;
                 this.showGrid = true;
                 this.useGravity = true;
+                this.useWalls = true;
+                this.useCollisions = true;
                 this.loadScene(sceneKey);
             }
 
@@ -199,6 +212,10 @@
                 this.probe = null;
                 this.paused = false;
                 this.useGravity = true;
+                // Walls + collisions make the falling-body scenes feel physical;
+                // orbital stays a clean Kepler demo without them.
+                this.useWalls = sceneKey !== 'orbital';
+                this.useCollisions = sceneKey !== 'orbital';
 
                 if (sceneKey === 'orbital') this.seedOrbital();
                 else if (sceneKey === 'materials') this.seedMaterials();
@@ -267,10 +284,28 @@
 
             step() {
                 for (const body of this.bodies) {
+                    // A held body is kinematic: still show the forces it would
+                    // feel, but let the cursor drive its motion (see updateGrab).
+                    if (body.grabbed) {
+                        this.captureForces(body, this.computeForces(body));
+                        continue;
+                    }
                     const forces = this.computeForces(body);
                     this.captureForces(body, forces);
                     for (const entry of forces) body.applyForce(entry.vector);
                     body.update();
+                    if (this.useWalls) resolveWalls(body);
+                }
+
+                if (this.useCollisions && this.bodies.length > 1) {
+                    for (let pass = 0; pass < COLLISION_PASSES; pass++) {
+                        resolveBodyCollisions(this.bodies);
+                    }
+                    if (this.useWalls) {
+                        for (const body of this.bodies) {
+                            if (!body.grabbed) resolveWalls(body);
+                        }
+                    }
                 }
             }
 
@@ -343,6 +378,76 @@
             }
         }
 
+        // Keep a body inside the canvas, bouncing off the edges. The floor also
+        // sheds horizontal speed so piles settle instead of skating forever.
+        function resolveWalls(b) {
+            const r = b.radius;
+            if (b.position.x < r) {
+                b.position.x = r;
+                if (b.velocity.x < 0) b.velocity.x = -b.velocity.x * WALL_RESTITUTION;
+            } else if (b.position.x > width - r) {
+                b.position.x = width - r;
+                if (b.velocity.x > 0) b.velocity.x = -b.velocity.x * WALL_RESTITUTION;
+            }
+            if (b.position.y < r) {
+                b.position.y = r;
+                if (b.velocity.y < 0) b.velocity.y = -b.velocity.y * WALL_RESTITUTION;
+            } else if (b.position.y > height - r) {
+                b.position.y = height - r;
+                if (b.velocity.y > 0) {
+                    b.velocity.y = -b.velocity.y * WALL_RESTITUTION;
+                    b.velocity.x *= FLOOR_FRICTION;
+                }
+            }
+        }
+
+        // Circle-circle collision with mass-weighted positional correction and a
+        // restitution impulse. A grabbed body acts as immovable (invMass 0).
+        function resolveBodyCollisions(bodies) {
+            const n = bodies.length;
+            for (let i = 0; i < n; i++) {
+                const a = bodies[i];
+                for (let j = i + 1; j < n; j++) {
+                    const b = bodies[j];
+                    let dx = b.position.x - a.position.x;
+                    let dy = b.position.y - a.position.y;
+                    let distSq = dx * dx + dy * dy;
+                    const minD = a.radius + b.radius;
+
+                    if (distSq === 0) {
+                        dx = random(-0.5, 0.5) || 0.01;
+                        dy = random(-0.5, 0.5);
+                        distSq = dx * dx + dy * dy;
+                    }
+                    if (distSq >= minD * minD) continue;
+
+                    const d = sqrt(distSq);
+                    const nx = dx / d;
+                    const ny = dy / d;
+                    const invA = a.grabbed ? 0 : 1 / a.mass;
+                    const invB = b.grabbed ? 0 : 1 / b.mass;
+                    const invSum = invA + invB;
+                    if (invSum === 0) continue;
+
+                    const correction = (minD - d) * 0.8 / invSum;
+                    a.position.x -= nx * correction * invA;
+                    a.position.y -= ny * correction * invA;
+                    b.position.x += nx * correction * invB;
+                    b.position.y += ny * correction * invB;
+
+                    const velAlongN = (b.velocity.x - a.velocity.x) * nx +
+                        (b.velocity.y - a.velocity.y) * ny;
+                    if (velAlongN < 0) {
+                        const impulse = -(1 + BODY_RESTITUTION) * velAlongN / invSum;
+                        a.velocity.x -= nx * impulse * invA;
+                        a.velocity.y -= ny * impulse * invA;
+                        b.velocity.x += nx * impulse * invB;
+                        b.velocity.y += ny * impulse * invB;
+                    }
+                }
+            }
+        }
+
         function setup() {
             const canvas = createCanvas(windowWidth, windowHeight);
             canvas.parent('sketch');
@@ -372,13 +477,16 @@
             if (world.paused) world.refreshForces();
             else world.step();
 
+            updateGrab();
+
             drawTrails();
             drawBodies();
+            drawGrab();
             if (world.probe) {
                 drawProbeArrows(world.probe);
                 drawProbePanel(world.probe);
             }
-            drawVelocityDrag();
+            drawSpawnDrag();
             drawZonePreview();
             drawToolbar();
         }
@@ -556,33 +664,62 @@
 
         function drawToolbar() {
             toolbarItems = [];
-            const pad = 14;
-            let x = 16;
-            let y = height - 44;
-
-            x = toolbarButton(x, y, world.paused ? 'Play' : 'Pause', 'pause', world.paused);
-            x = toolbarButton(x, y, 'Reset', 'reset', false);
-            x = toolbarButton(x, y, 'Grid', 'grid', world.showGrid);
-
-            x += 10;
+            const items = [];
+            items.push({ label: world.paused ? 'Play' : 'Pause', action: 'pause', active: world.paused });
+            items.push({ label: 'Reset', action: 'reset', active: false });
+            items.push({ label: 'Grid', action: 'grid', active: world.showGrid });
+            items.push({ label: 'Gravity', action: 'gravity', active: world.useGravity });
+            items.push({ gap: true });
             for (const scene of SCENES) {
-                x = toolbarButton(x, y, scene.label, 'scene:' + scene.key, world.sceneKey === scene.key);
+                items.push({ label: scene.label, action: 'scene:' + scene.key, active: world.sceneKey === scene.key });
             }
-
-            x += 10;
+            items.push({ gap: true });
             for (let i = 0; i < TOOLS.length; i++) {
-                const tool = TOOLS[i];
-                x = toolbarButton(x, y, (i + 1) + ' ' + tool.label, 'tool:' + tool.key, currentTool === tool.key);
+                items.push({ label: (i + 1) + ' ' + TOOLS[i].label, action: 'tool:' + TOOLS[i].key, active: currentTool === TOOLS[i].key });
             }
 
+            textSize(11);
+            for (const it of items) it.w = it.gap ? 12 : max(52, textWidth(it.label) + 20);
+
+            // Lay the buttons out left-to-right, wrapping onto stacked rows so the
+            // control strip never runs off the edge on a narrow embed.
+            const rowH = 28, vgap = 6, hgap = 7, maxW = width - 32;
+            const rows = [[]];
+            let rowW = 0;
+            for (const it of items) {
+                if (it.gap && rowW === 0) continue;
+                if (!it.gap && rowW > 0 && rowW + hgap + it.w > maxW) {
+                    rows.push([]);
+                    rowW = 0;
+                    if (it.gap) continue;
+                }
+                rows[rows.length - 1].push(it);
+                rowW += (rowW > 0 ? hgap : 0) + it.w;
+            }
+
+            const numRows = rows.length;
+            for (let r = 0; r < numRows; r++) {
+                const y = height - 16 - rowH - (numRows - 1 - r) * (rowH + vgap);
+                let x = 16;
+                for (const it of rows[r]) {
+                    if (it.gap) { x += it.w; continue; }
+                    drawToolButton(x, y, it.w, it.label, it.action, it.active);
+                    x += it.w + hgap;
+                }
+            }
+
+            const topY = height - 16 - rowH - (numRows - 1) * (rowH + vgap);
+            let actionHint;
+            if (currentTool === 'spawn') actionHint = 'click empty: drop ball  ·  drag: launch';
+            else if (currentTool === 'attractor') actionHint = 'click empty: drop attractor';
+            else actionHint = 'drag empty: paint ' + currentTool + ' zone';
             noStroke();
-            fill(INK[0], INK[1], INK[2], 112);
+            fill(INK[0], INK[1], INK[2], 120);
             textSize(10);
-            text('click body: probe   click empty: attractor   drag empty: zone', pad + 2, y - 10);
+            text('drag a body: grab & throw   ·   ' + actionHint, 18, topY - 10);
         }
 
-        function toolbarButton(x, y, label, action, active) {
-            const w = max(54, textWidth(label) + 22);
+        function drawToolButton(x, y, w, label, action, active) {
             toolbarItems.push({ x, y, w, h: 28, action });
             stroke(active ? FORCE_COLORS.wind[0] : GOLD[0], active ? FORCE_COLORS.wind[1] : GOLD[1],
                 active ? FORCE_COLORS.wind[2] : GOLD[2], active ? 168 : 78);
@@ -592,8 +729,7 @@
             noStroke();
             fill(INK[0], INK[1], INK[2], active ? 232 : 156);
             textSize(11);
-            text(label, x + 11, y + 18);
-            return x + w + 7;
+            text(label, x + 10, y + 18);
         }
 
         function drawZonePreview() {
@@ -609,17 +745,69 @@
             rect(rect.x, rect.y, rect.w, rect.h, 2);
         }
 
-        function drawVelocityDrag() {
-            if (!velocityDrag) return;
-            const body = velocityDrag.body;
-            const vector = createVector(mouseX - body.position.x, mouseY - body.position.y);
-            stroke(FORCE_COLORS.velocity[0], FORCE_COLORS.velocity[1], FORCE_COLORS.velocity[2], 160);
+        function beginGrab(body) {
+            grab = { body, vx: 0, vy: 0 };
+            body.grabbed = true;
+        }
+
+        // Release with the smoothed cursor velocity, not the last raw frame
+        // delta, so letting go during a momentary pause still throws the body.
+        function endGrab() {
+            if (!grab) return;
+            const b = grab.body;
+            b.velocity.set(grab.vx, grab.vy).limit(MAX_SPEED * 2);
+            b.grabbed = false;
+            grab = null;
+        }
+
+        // Drive a held body straight from the cursor. Track a smoothed cursor
+        // velocity for the eventual throw, and keep a live frame velocity so the
+        // held body can knock other bodies out of the way.
+        function updateGrab() {
+            if (!grab) return;
+            const b = grab.body;
+            const dx = mouseX - b.position.x;
+            const dy = mouseY - b.position.y;
+            grab.vx = grab.vx * 0.55 + dx * 0.45;
+            grab.vy = grab.vy * 0.55 + dy * 0.45;
+            b.previous = b.position.copy();
+            b.velocity.set(dx, dy).limit(MAX_SPEED * 2);
+            b.position.set(mouseX, mouseY);
+            if (world.useWalls) resolveWalls(b);
+        }
+
+        function spawnBody(x, y, velocity) {
+            if (world.bodies.length >= MAX_BODIES) return;
+            const mass = random(6, 46);
+            const tone = lerpColorArray(BODY_CORE, BODY_ALT, random(0, 1));
+            world.bodies.push(new Body(x, y, mass, velocity, tone));
+        }
+
+        function drawGrab() {
+            if (!grab) return;
+            const b = grab.body;
+            noFill();
+            stroke(FORCE_COLORS.velocity[0], FORCE_COLORS.velocity[1], FORCE_COLORS.velocity[2], 190);
             strokeWeight(1.4);
-            line(body.position.x, body.position.y, mouseX, mouseY);
+            circle(b.position.x, b.position.y, b.radius * 2.6 + 12);
+        }
+
+        function drawSpawnDrag() {
+            if (!spawnDrag) return;
+            const dx = spawnDrag.x - mouseX;
+            const dy = spawnDrag.y - mouseY;
+            stroke(BODY_ALT[0], BODY_ALT[1], BODY_ALT[2], 150);
+            strokeWeight(1.4);
+            line(mouseX, mouseY, spawnDrag.x, spawnDrag.y);
             noStroke();
-            fill(FORCE_COLORS.velocity[0], FORCE_COLORS.velocity[1], FORCE_COLORS.velocity[2], 170);
+            fill(BODY_ALT[0], BODY_ALT[1], BODY_ALT[2], 60);
+            circle(spawnDrag.x, spawnDrag.y, 16);
+            fill(BODY_ALT[0], BODY_ALT[1], BODY_ALT[2], 210);
+            circle(spawnDrag.x, spawnDrag.y, 6);
+            const speed = min(sqrt(dx * dx + dy * dy) * 0.06, MAX_SPEED);
+            fill(INK[0], INK[1], INK[2], 185);
             textSize(10);
-            text('release: set velocity ' + fmtVec(vector.mult(0.035)), mouseX + 10, mouseY - 8);
+            text('release: launch  v=' + nf(speed, 1, 2), mouseX + 10, mouseY - 8);
         }
 
         function mousePressed() {
@@ -629,28 +817,38 @@
             const body = bodyAt(mouseX, mouseY);
             if (body) {
                 world.probe = body;
-                if (world.sceneKey === 'orbital' && world.paused) {
-                    velocityDrag = { body };
-                }
+                beginGrab(body);
                 return;
             }
 
+            if (currentTool === 'spawn') {
+                spawnDrag = { x: mouseX, y: mouseY };
+                return;
+            }
+            if (currentTool === 'attractor') {
+                world.addAttractor(mouseX, mouseY);
+                return;
+            }
             dragZone = { x: mouseX, y: mouseY, type: currentTool };
         }
 
         function mouseReleased() {
-            if (velocityDrag) {
-                const body = velocityDrag.body;
-                const v = createVector(mouseX - body.position.x, mouseY - body.position.y).mult(0.035);
-                if (v.mag() > 0.08) body.velocity = v.limit(MAX_SPEED);
-                velocityDrag = null;
+            if (grab) {
+                endGrab();
+                return;
+            }
+
+            if (spawnDrag) {
+                const launch = createVector(spawnDrag.x - mouseX, spawnDrag.y - mouseY)
+                    .mult(0.06).limit(MAX_SPEED);
+                spawnBody(spawnDrag.x, spawnDrag.y, launch);
+                spawnDrag = null;
                 return;
             }
 
             if (!dragZone) return;
             const rect = normalizedRect(dragZone.x, dragZone.y, mouseX, mouseY);
-            if (rect.w < 8 && rect.h < 8) world.addAttractor(mouseX, mouseY);
-            else world.addZone(dragZone.type, rect);
+            if (rect.w >= 8 || rect.h >= 8) world.addZone(dragZone.type, rect);
             dragZone = null;
         }
 
@@ -658,9 +856,11 @@
             if (key === ' ') world.paused = !world.paused;
             else if (key === 'r' || key === 'R') world.loadScene(world.sceneKey);
             else if (key === 'g' || key === 'G') world.showGrid = !world.showGrid;
-            else if (key === '1') currentTool = 'wind';
-            else if (key === '2') currentTool = 'drag';
-            else if (key === '3') currentTool = 'friction';
+            else if (key === 'h' || key === 'H') world.useGravity = !world.useGravity;
+            else {
+                const n = parseInt(key, 10);
+                if (n >= 1 && n <= TOOLS.length) currentTool = TOOLS[n - 1].key;
+            }
         }
 
         function handleToolbar(x, y) {
@@ -669,6 +869,7 @@
                 if (item.action === 'pause') world.paused = !world.paused;
                 else if (item.action === 'reset') world.loadScene(world.sceneKey);
                 else if (item.action === 'grid') world.showGrid = !world.showGrid;
+                else if (item.action === 'gravity') world.useGravity = !world.useGravity;
                 else if (item.action.startsWith('scene:')) {
                     currentScene = item.action.slice(6);
                     world.loadScene(currentScene);
