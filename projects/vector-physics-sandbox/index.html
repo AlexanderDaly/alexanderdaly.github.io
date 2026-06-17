@@ -99,7 +99,8 @@
         const COLLISION_PASSES = 2;     // relaxation iterations per frame
         const MAX_BODIES = 150;         // spawn cap (keeps O(n^2) honest)
         const FIELD_RADIUS = 240;       // cursor force-field reach, px
-        const FIELD_STRENGTH = 0.72;    // peak acceleration at the cursor
+        const FIELD_MIN = 0.15;         // weakest peak acceleration (slider left)
+        const FIELD_MAX = 1.4;          // strongest peak acceleration (slider right)
 
         const BG = [3, 5, 10];
         const GOLD = [206, 164, 74];
@@ -130,8 +131,7 @@
             { key: 'wind', label: 'Wind' },
             { key: 'drag', label: 'Drag' },
             { key: 'friction', label: 'Friction' },
-            { key: 'pull', label: 'Pull' },
-            { key: 'push', label: 'Push' }
+            { key: 'field', label: 'Field' }
         ];
 
         let world;
@@ -142,6 +142,9 @@
         let grab = null;
         let spawnDrag = null;
         let cursorField = null;
+        let fieldMode = 'pull';         // polarity of the cursor field
+        let fieldStrength = 0.72;       // peak acceleration, set by the slider
+        let sliderDrag = null;          // active drag of the strength slider
 
         class Body {
             constructor(x, y, mass, velocity, tone) {
@@ -360,7 +363,7 @@
                     if (d > 0.5 && d < FIELD_RADIUS) {
                         const falloff = pow(1 - d / FIELD_RADIUS, 1.6);
                         const sign = cursorField.mode === 'pull' ? 1 : -1;
-                        const magnitude = FIELD_STRENGTH * falloff * body.mass * sign;
+                        const magnitude = fieldStrength * falloff * body.mass * sign;
                         const field = createVector(dx / d, dy / d).mult(magnitude);
                         forces.push({ type: 'cursor', vector: field });
                     }
@@ -699,11 +702,21 @@
             }
             items.push({ gap: true });
             for (let i = 0; i < TOOLS.length; i++) {
-                items.push({ label: (i + 1) + ' ' + TOOLS[i].label, action: 'tool:' + TOOLS[i].key, active: currentTool === TOOLS[i].key });
+                const tool = TOOLS[i];
+                // The single Field tool shows its current polarity as its label.
+                const label = tool.key === 'field'
+                    ? (i + 1) + ' ' + (fieldMode === 'pull' ? 'Pull' : 'Push')
+                    : (i + 1) + ' ' + tool.label;
+                items.push({ label, action: 'tool:' + tool.key, active: currentTool === tool.key });
             }
+            // A contextual strength slider rides along only while Field is active.
+            if (currentTool === 'field') items.push({ slider: true, w: 150 });
 
             textSize(11);
-            for (const it of items) it.w = it.gap ? 12 : max(52, textWidth(it.label) + 20);
+            for (const it of items) {
+                if (it.slider) continue;
+                it.w = it.gap ? 12 : max(52, textWidth(it.label) + 20);
+            }
 
             // Lay the buttons out left-to-right, wrapping onto stacked rows so the
             // control strip never runs off the edge on a narrow embed.
@@ -727,7 +740,8 @@
                 let x = 16;
                 for (const it of rows[r]) {
                     if (it.gap) { x += it.w; continue; }
-                    drawToolButton(x, y, it.w, it.label, it.action, it.active);
+                    if (it.slider) drawSlider(x, y, it.w);
+                    else drawToolButton(x, y, it.w, it.label, it.action, it.active);
                     x += it.w + hgap;
                 }
             }
@@ -736,8 +750,7 @@
             let actionHint;
             if (currentTool === 'spawn') actionHint = 'click empty: drop ball  ·  drag: launch';
             else if (currentTool === 'attractor') actionHint = 'click empty: drop attractor';
-            else if (currentTool === 'pull') actionHint = 'hold: pull bodies toward the cursor';
-            else if (currentTool === 'push') actionHint = 'hold: push bodies from the cursor';
+            else if (currentTool === 'field') actionHint = 'hold: ' + fieldMode + ' bodies  ·  slider: strength  ·  tap tool to flip';
             else actionHint = 'drag empty: paint ' + currentTool + ' zone';
             noStroke();
             fill(INK[0], INK[1], INK[2], 120);
@@ -756,6 +769,36 @@
             fill(INK[0], INK[1], INK[2], active ? 232 : 156);
             textSize(11);
             text(label, x + 10, y + 18);
+        }
+
+        // Canvas-drawn strength slider for the cursor field. Registers a hit area
+        // with its track bounds so press/drag can map the pointer to a value.
+        function drawSlider(x, y, w) {
+            const trackL = x + 12;
+            const trackR = x + w - 36;
+            toolbarItems.push({ x, y, w, h: 28, action: 'field-strength', trackL, trackR });
+
+            stroke(GOLD[0], GOLD[1], GOLD[2], 78);
+            strokeWeight(1);
+            fill(PANEL[0], PANEL[1], PANEL[2], 178);
+            rect(x, y, w, 28, 4);
+
+            const c = FORCE_COLORS.cursor;
+            const norm = (fieldStrength - FIELD_MIN) / (FIELD_MAX - FIELD_MIN);
+            const kx = trackL + norm * (trackR - trackL);
+
+            stroke(INK[0], INK[1], INK[2], 70);
+            strokeWeight(2);
+            line(trackL, y + 14, trackR, y + 14);
+            stroke(c[0], c[1], c[2], 210);
+            line(trackL, y + 14, kx, y + 14);
+            noStroke();
+            fill(c[0], c[1], c[2], 240);
+            circle(kx, y + 14, 11);
+
+            fill(INK[0], INK[1], INK[2], 200);
+            textSize(10);
+            text(nf(fieldStrength, 1, 2), x + w - 30, y + 18);
         }
 
         function drawZonePreview() {
@@ -876,10 +919,10 @@
             if (handleToolbar(mouseX, mouseY)) return;
             if (world.probe && overProbePanel(mouseX, mouseY)) return;
 
-            // Pull/Push are a held mode: the cursor becomes a radial force field
-            // over the whole crowd rather than grabbing a single body.
-            if (currentTool === 'pull' || currentTool === 'push') {
-                cursorField = { mode: currentTool };
+            // Field is a held mode: the cursor becomes a radial force field over
+            // the whole crowd rather than grabbing a single body.
+            if (currentTool === 'field') {
+                cursorField = { mode: fieldMode };
                 return;
             }
 
@@ -901,7 +944,24 @@
             dragZone = { x: mouseX, y: mouseY, type: currentTool };
         }
 
+        function mouseDragged() {
+            if (sliderDrag) {
+                setFieldStrengthFromX(mouseX, sliderDrag.trackL, sliderDrag.trackR);
+                return false;
+            }
+        }
+
+        function setFieldStrengthFromX(mx, trackL, trackR) {
+            const norm = constrain((mx - trackL) / (trackR - trackL), 0, 1);
+            fieldStrength = FIELD_MIN + norm * (FIELD_MAX - FIELD_MIN);
+        }
+
         function mouseReleased() {
+            if (sliderDrag) {
+                sliderDrag = null;
+                return;
+            }
+
             if (cursorField) {
                 cursorField = null;
                 return;
@@ -933,8 +993,16 @@
             else if (key === 'h' || key === 'H') world.useGravity = !world.useGravity;
             else {
                 const n = parseInt(key, 10);
-                if (n >= 1 && n <= TOOLS.length) currentTool = TOOLS[n - 1].key;
+                if (n >= 1 && n <= TOOLS.length) {
+                    const t = TOOLS[n - 1].key;
+                    if (t === 'field' && currentTool === 'field') flipFieldMode();
+                    else currentTool = t;
+                }
             }
+        }
+
+        function flipFieldMode() {
+            fieldMode = fieldMode === 'pull' ? 'push' : 'pull';
         }
 
         function handleToolbar(x, y) {
@@ -944,11 +1012,18 @@
                 else if (item.action === 'reset') world.loadScene(world.sceneKey);
                 else if (item.action === 'grid') world.showGrid = !world.showGrid;
                 else if (item.action === 'gravity') world.useGravity = !world.useGravity;
-                else if (item.action.startsWith('scene:')) {
+                else if (item.action === 'field-strength') {
+                    setFieldStrengthFromX(x, item.trackL, item.trackR);
+                    sliderDrag = { trackL: item.trackL, trackR: item.trackR };
+                } else if (item.action.startsWith('scene:')) {
                     currentScene = item.action.slice(6);
                     world.loadScene(currentScene);
                 } else if (item.action.startsWith('tool:')) {
-                    currentTool = item.action.slice(5);
+                    const t = item.action.slice(5);
+                    // Tapping the Field tool while it is already selected flips
+                    // its polarity instead of re-selecting it.
+                    if (t === 'field' && currentTool === 'field') flipFieldMode();
+                    else currentTool = t;
                 }
                 return true;
             }
