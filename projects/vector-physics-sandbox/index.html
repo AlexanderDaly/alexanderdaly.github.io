@@ -98,6 +98,8 @@
         const BODY_RESTITUTION = 0.46;  // bounce energy kept body-to-body
         const COLLISION_PASSES = 2;     // relaxation iterations per frame
         const MAX_BODIES = 150;         // spawn cap (keeps O(n^2) honest)
+        const FIELD_RADIUS = 240;       // cursor force-field reach, px
+        const FIELD_STRENGTH = 0.72;    // peak acceleration at the cursor
 
         const BG = [3, 5, 10];
         const GOLD = [206, 164, 74];
@@ -111,6 +113,7 @@
             drag: [197, 146, 255],
             friction: [255, 189, 96],
             attraction: [255, 102, 124],
+            cursor: [255, 96, 200],
             net: [246, 244, 214],
             velocity: [125, 230, 255]
         };
@@ -126,7 +129,9 @@
             { key: 'attractor', label: 'Attractor' },
             { key: 'wind', label: 'Wind' },
             { key: 'drag', label: 'Drag' },
-            { key: 'friction', label: 'Friction' }
+            { key: 'friction', label: 'Friction' },
+            { key: 'pull', label: 'Pull' },
+            { key: 'push', label: 'Push' }
         ];
 
         let world;
@@ -136,6 +141,7 @@
         let dragZone = null;
         let grab = null;
         let spawnDrag = null;
+        let cursorField = null;
 
         class Body {
             constructor(x, y, mass, velocity, tone) {
@@ -344,6 +350,22 @@
                     forces.push({ type: 'attraction', vector: attraction });
                 }
 
+                // Cursor force field: a radial pull/push centred on the pointer,
+                // mass-scaled so every body shares the same acceleration toward
+                // (or away from) the cursor, fading out at FIELD_RADIUS.
+                if (cursorField) {
+                    const dx = mouseX - body.position.x;
+                    const dy = mouseY - body.position.y;
+                    const d = sqrt(dx * dx + dy * dy);
+                    if (d > 0.5 && d < FIELD_RADIUS) {
+                        const falloff = pow(1 - d / FIELD_RADIUS, 1.6);
+                        const sign = cursorField.mode === 'pull' ? 1 : -1;
+                        const magnitude = FIELD_STRENGTH * falloff * body.mass * sign;
+                        const field = createVector(dx / d, dy / d).mult(magnitude);
+                        forces.push({ type: 'cursor', vector: field });
+                    }
+                }
+
                 return forces.filter(entry => entry.vector.magSq() > 0.000001);
             }
 
@@ -353,7 +375,8 @@
                     wind: createVector(0, 0),
                     drag: createVector(0, 0),
                     friction: createVector(0, 0),
-                    attraction: createVector(0, 0)
+                    attraction: createVector(0, 0),
+                    cursor: createVector(0, 0)
                 };
                 const net = createVector(0, 0);
 
@@ -486,6 +509,7 @@
                 drawProbeArrows(world.probe);
                 drawProbePanel(world.probe);
             }
+            drawCursorField();
             drawSpawnDrag();
             drawZonePreview();
             drawToolbar();
@@ -582,7 +606,7 @@
         function drawProbeArrows(body) {
             const p = body.position;
             const sums = body.forceSums;
-            const forceOrder = ['weight', 'wind', 'drag', 'friction', 'attraction'];
+            const forceOrder = ['weight', 'wind', 'drag', 'friction', 'attraction', 'cursor'];
             let lane = 0;
 
             for (const type of forceOrder) {
@@ -640,7 +664,7 @@
             drawPanelText('mass          ' + nf(body.mass, 1, 2), x + 16, yy, INK, 11);
             yy += 18;
 
-            for (const type of ['weight', 'wind', 'drag', 'friction', 'attraction']) {
+            for (const type of ['weight', 'wind', 'drag', 'friction', 'attraction', 'cursor']) {
                 const v = body.forceSums[type];
                 if (!v || v.magSq() < 0.000001) continue;
                 drawPanelText(padRight(type, 13) + fmtVec(v), x + 16, yy, FORCE_COLORS[type], 11);
@@ -712,6 +736,8 @@
             let actionHint;
             if (currentTool === 'spawn') actionHint = 'click empty: drop ball  ·  drag: launch';
             else if (currentTool === 'attractor') actionHint = 'click empty: drop attractor';
+            else if (currentTool === 'pull') actionHint = 'hold: pull bodies toward the cursor';
+            else if (currentTool === 'push') actionHint = 'hold: push bodies from the cursor';
             else actionHint = 'drag empty: paint ' + currentTool + ' zone';
             noStroke();
             fill(INK[0], INK[1], INK[2], 120);
@@ -783,6 +809,42 @@
             world.bodies.push(new Body(x, y, mass, velocity, tone));
         }
 
+        // Visualise the active cursor force field: a soft disc, a reach ring, and
+        // spokes pointing inward (pull) or outward (push).
+        function drawCursorField() {
+            if (!cursorField) return;
+            const c = FORCE_COLORS.cursor;
+            const pulling = cursorField.mode === 'pull';
+
+            blendMode(ADD);
+            noStroke();
+            fill(c[0], c[1], c[2], pulling ? 20 : 14);
+            circle(mouseX, mouseY, FIELD_RADIUS * 2);
+            blendMode(BLEND);
+
+            noFill();
+            stroke(c[0], c[1], c[2], 140);
+            strokeWeight(1.2);
+            circle(mouseX, mouseY, FIELD_RADIUS * 2);
+
+            stroke(c[0], c[1], c[2], 210);
+            strokeWeight(1.4);
+            const inner = 14, outer = 30;
+            for (let a = 0; a < TWO_PI; a += TWO_PI / 8) {
+                const ix = mouseX + cos(a) * inner, iy = mouseY + sin(a) * inner;
+                const ox = mouseX + cos(a) * outer, oy = mouseY + sin(a) * outer;
+                const tx = pulling ? ix : ox, ty = pulling ? iy : oy;     // arrow tip
+                const bx = pulling ? ox : ix, by = pulling ? oy : iy;     // arrow base
+                line(bx, by, tx, ty);
+                const ah = 4;
+                line(tx, ty, tx - cos(a - 0.5) * ah * (pulling ? 1 : -1), ty - sin(a - 0.5) * ah * (pulling ? 1 : -1));
+                line(tx, ty, tx - cos(a + 0.5) * ah * (pulling ? 1 : -1), ty - sin(a + 0.5) * ah * (pulling ? 1 : -1));
+            }
+            noStroke();
+            fill(c[0], c[1], c[2], 235);
+            circle(mouseX, mouseY, 5);
+        }
+
         function drawGrab() {
             if (!grab) return;
             const b = grab.body;
@@ -814,6 +876,13 @@
             if (handleToolbar(mouseX, mouseY)) return;
             if (world.probe && overProbePanel(mouseX, mouseY)) return;
 
+            // Pull/Push are a held mode: the cursor becomes a radial force field
+            // over the whole crowd rather than grabbing a single body.
+            if (currentTool === 'pull' || currentTool === 'push') {
+                cursorField = { mode: currentTool };
+                return;
+            }
+
             const body = bodyAt(mouseX, mouseY);
             if (body) {
                 world.probe = body;
@@ -833,6 +902,11 @@
         }
 
         function mouseReleased() {
+            if (cursorField) {
+                cursorField = null;
+                return;
+            }
+
             if (grab) {
                 endGrab();
                 return;
