@@ -79,14 +79,15 @@
 
     <script>
         const G = 0.24;
-        const GRAVITY = new p5.Vector(0, 0.078);
+        // GRAVITY and WIND are created in setup() (via createVector) rather than
+        // at load time, so a failed p5 CDN can't throw before the boot fallback.
+        let GRAVITY, WIND;
         const EPS = 44;
         const R_MIN = 1500;
         const R_MAX = 90000;
         const MAX_SPEED = 7.5;
         const DRAG_C = 0.018;
         const FRICTION_MU = 0.16;
-        const WIND = new p5.Vector(0.19, -0.015);
         const NUM_BODIES = 42;
         const RADIUS_K = 2.25;
         const TRAIL_ALPHA = 18;
@@ -475,6 +476,8 @@
         }
 
         function setup() {
+            GRAVITY = createVector(0, 0.078);
+            WIND = createVector(0.19, -0.015);
             const canvas = createCanvas(windowWidth, windowHeight);
             canvas.parent('sketch');
             pixelDensity(min(window.devicePixelRatio || 1, 2));
@@ -803,15 +806,15 @@
 
         function drawZonePreview() {
             if (!dragZone) return;
-            const rect = normalizedRect(dragZone.x, dragZone.y, mouseX, mouseY);
+            const bounds = normalizedRect(dragZone.x, dragZone.y, mouseX, mouseY);
             const c = FORCE_COLORS[dragZone.type];
             noStroke();
             fill(c[0], c[1], c[2], 24);
-            rect(rect.x, rect.y, rect.w, rect.h, 2);
+            rect(bounds.x, bounds.y, bounds.w, bounds.h, 2);
             stroke(c[0], c[1], c[2], 128);
             strokeWeight(1);
             noFill();
-            rect(rect.x, rect.y, rect.w, rect.h, 2);
+            rect(bounds.x, bounds.y, bounds.w, bounds.h, 2);
         }
 
         function beginGrab(body) {

@@ -207,10 +207,14 @@ struct Params {
   dt: f32, gravity: f32, cursorX: f32, cursorY: f32,
   cursorActive: f32, fieldSign: f32, fieldStrength: f32, fieldRadius: f32,
   width: f32, height: f32, damping: f32, restitution: f32,
-  count: f32, pointSize: f32, pad0: f32, pad1: f32,
+  count: f32, pointSize: f32, burst: f32, pad1: f32,
 };
 @group(0) @binding(0) var<storage, read_write> parts: array<vec4<f32>>;
 @group(0) @binding(1) var<uniform> P: Params;
+
+fn hash12(p: vec2<f32>) -> f32 {
+  return fract(sin(dot(p, vec2<f32>(12.9898, 78.233))) * 43758.5453);
+}
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
@@ -219,6 +223,16 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   var d = parts[i];
   var pos = d.xy;
   var vel = d.zw;
+
+  // One-shot radial burst from each particle's *current* GPU position, so the
+  // cloud explodes from where it is rather than snapping to a stale layout.
+  if (P.burst > 0.0) {
+    let c = vec2<f32>(P.width, P.height) * 0.5;
+    let off = pos - c;
+    let dl = length(off);
+    let dir = select(vec2<f32>(1.0, 0.0), off / dl, dl > 0.001);
+    vel = dir * (P.burst * (0.7 + 0.6 * hash12(pos)));
+  }
 
   vel.y += P.gravity * P.dt;
 
@@ -417,7 +431,8 @@ fn fs(frag: VOut) -> @location(0) vec4<f32> {
                 cursorX: 0, cursorY: 0, active: 0,
                 sign: 1,                                   // +1 pull, -1 push
                 strength: FIELD_MIN + 0.55 * (FIELD_MAX - FIELD_MIN),
-                gravity: 0
+                gravity: 0,
+                burst: 0                                   // one-shot impulse, consumed each frame
             };
 
             function makeParticleData(n) {
@@ -531,17 +546,10 @@ fn fs(frag: VOut) -> @location(0) vec4<f32> {
                 });
             });
             document.getElementById('reset').addEventListener('click', () => rebuildParticles(count));
-            document.getElementById('burst').addEventListener('click', () => {
-                const cx = state.w * 0.5, cy = state.h * 0.5;
-                for (let i = 0; i < count; i++) {
-                    const dx = particleData[i * 4] - cx, dy = particleData[i * 4 + 1] - cy;
-                    const d = Math.hypot(dx, dy) || 1;
-                    const kick = 3.5 + Math.random() * 3.5;
-                    particleData[i * 4 + 2] = (dx / d) * kick;
-                    particleData[i * 4 + 3] = (dy / d) * kick;
-                }
-                device.queue.writeBuffer(particleBuf, 0, particleData);
-            });
+            // Burst is a one-shot uniform flag consumed by the compute shader, so
+            // it radiates from each particle's *live* GPU position (the CPU copy
+            // is only the stale initialisation snapshot).
+            document.getElementById('burst').addEventListener('click', () => { state.burst = 5.5; });
 
             // ------------------------------ loop ---------------------------------
             const boot = document.getElementById('boot');
@@ -559,7 +567,9 @@ fn fs(frag: VOut) -> @location(0) vec4<f32> {
                 params[8] = state.w; params[9] = state.h;
                 params[10] = DAMPING; params[11] = RESTITUTION;
                 params[12] = count; params[13] = POINT_SIZE * DPR;
+                params[14] = state.burst;
                 device.queue.writeBuffer(paramsBuf, 0, params);
+                state.burst = 0;   // consume the impulse after a single frame
 
                 const enc = device.createCommandEncoder();
 
