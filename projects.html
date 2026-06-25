@@ -42,10 +42,10 @@
                     </button>
                     <button class="project-switch" type="button" role="tab" aria-selected="false"
                         aria-controls="project-vectors" id="project-tab-vectors" data-project-target="vectors">
-                        <span class="project-switch-meta">Vectors</span>
-                        <span class="project-switch-title">2D Force Engine</span>
-                        <span class="project-switch-copy">One force-accumulation loop for gravity, wind, drag,
-                            friction, attractors, and scene presets.</span>
+                        <span class="project-switch-meta">WebGPU</span>
+                        <span class="project-switch-title">GPU Force Field</span>
+                        <span class="project-switch-copy">Tens of thousands of particles on the GPU, pushed and
+                            pulled by a cursor force field. Falls back to a p5 force sandbox.</span>
                     </button>
                     <button class="project-switch" type="button" role="tab" aria-selected="false"
                         aria-controls="project-ecosystem" id="project-tab-ecosystem"
@@ -290,16 +290,17 @@
                 role="tabpanel" aria-labelledby="project-tab-vectors" hidden>
                 <div class="vector-sandbox-copy">
                     <div class="article-meta">Interactive Project</div>
-                    <h1 id="vector-sandbox-title">2D Force Engine</h1>
-                    <p class="subtitle">A p5.js force instrument where every behavior contributes force to the same
-                        semi-implicit Euler body spine.</p>
+                    <h1 id="vector-sandbox-title">GPU Force Field</h1>
+                    <p class="subtitle">A WebGPU compute-shader particle field &mdash; gravity, walls, and a cursor
+                        force field over tens of thousands of points. Falls back to a p5 force sandbox where WebGPU
+                        isn't available.</p>
                 </div>
 
                 <div class="vector-sandbox-layout">
                     <div class="vector-sandbox-frame">
                         <iframe src="./projects/vector-physics-sandbox/index.html"
-                            title="2D Force Engine p5.js demo"
-                            aria-label="A p5.js force engine with scene presets, zones, attractors, and a probe force panel."></iframe>
+                            title="WebGPU particle force field" loading="lazy"
+                            aria-label="A WebGPU particle field driven by gravity and a cursor force field, with a p5 force sandbox fallback."></iframe>
                     </div>
 
                     <a class="vector-sandbox-open" href="./projects/vector-physics-sandbox/index.html">Open standalone</a>
